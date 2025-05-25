@@ -14,10 +14,7 @@ export const useMetamask = () => {
 
   // Setup provider
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      typeof window.ethereum !== "undefined"
-    ) {
+    if (typeof window !== "undefined" && typeof window.ethereum !== "undefined") {
       const ethProvider = new ethers.BrowserProvider(window.ethereum);
       setProvider(ethProvider);
     } else {
@@ -48,9 +45,14 @@ export const useMetamask = () => {
     checkIfWalletIsConnected();
   }, [provider]);
 
-  const connectWallet = async () => {
+  // 🔥 Main wallet connection function
+  const connectWallet = async (
+    onError?: (message: string, redirectToMetaMask?: boolean) => void
+  ) => {
     if (!provider) {
-      setError("MetaMask is not connected.");
+      const msg = "MetaMask is not installed. Redirecting...";
+      setError(msg);
+      onError?.(msg, true);
       setLoading(false);
       return;
     }
@@ -61,9 +63,18 @@ export const useMetamask = () => {
       setAccount(connectedAccount);
       setIsSuperAdmin(connectedAccount === SUPER_ADMIN_ADDRESS);
       await connectToPolygon();
-    } catch (err) {
-      setError("Failed to connect to MetaMask.");
-      console.log(err);
+    } catch (err: any) {
+      if (err.code === 4001) {
+        setError("Connection request rejected by user.");
+        onError?.("Connection request rejected by user.");
+      } else if (err.code === -32002) {
+        setError("Connection request already pending in MetaMask.");
+        onError?.("Connection request already pending in MetaMask.");
+      } else {
+        console.error("MetaMask connection error:", err);
+        setError("Failed to connect to MetaMask.");
+        onError?.("Failed to connect to MetaMask.");
+      }
     } finally {
       setLoading(false);
     }
@@ -71,7 +82,8 @@ export const useMetamask = () => {
 
   const connectToPolygon = async () => {
     if (!window.ethereum) {
-      setError("Please install MetaMask!");
+      const msg = "Please install MetaMask!";
+      setError(msg);
       return;
     }
 
@@ -91,5 +103,11 @@ export const useMetamask = () => {
     }
   };
 
-  return { account, connectWallet, error, isSuperAdmin,loading };
+  return {
+    account,
+    connectWallet,
+    error,
+    isSuperAdmin,
+    loading,
+  };
 };

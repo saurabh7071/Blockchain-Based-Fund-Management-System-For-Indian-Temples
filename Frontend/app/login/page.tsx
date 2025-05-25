@@ -23,8 +23,8 @@ export default function LoginForm() {
             <div className="inputContainer">
               <IconAt size={16} stroke={2} className="inputIcon" />
               <input
-                placeholder="Username"
-                id="username"
+                placeholder="Email ID"
+                id="email"
                 className="inputField"
                 type="text"
               />
@@ -52,14 +52,14 @@ export default function LoginForm() {
 
             <button id="button">Submit</button>
 
-            <p id="or">----------OR----------</p>
+            {/* <p id="or">----------OR----------</p>
 
-            <button id="google">Sign up with Google</button>
+            <button id="google">Sign up with Google</button> */}
 
             <h5>Don't have an account</h5>
 
             <div className="signupContainer">
-              <a href="#">Sign up</a>
+              <a href="/signup">Sign up</a>
             </div>
           </form>
         </div>

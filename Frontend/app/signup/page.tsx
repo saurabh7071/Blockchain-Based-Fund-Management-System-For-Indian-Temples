@@ -110,6 +110,7 @@ export default function SignupForm() {
     const completeForm = {
       ...formData,
       walletAddress: account,
+      role: "user",
     };
 
     try {
@@ -292,6 +293,11 @@ export default function SignupForm() {
                 </button>
               </>
             )}
+            <h5>Already have an account</h5>
+
+            <div className="signupContainer">
+              <a href="/login">Login</a>
+            </div>
           </form>
         </div>
       </div>

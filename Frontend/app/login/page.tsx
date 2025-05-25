@@ -1,15 +1,29 @@
 "use client";
 import { useState } from "react";
-import {
-  IconAt,
-  IconLock,
-  IconEye,
-  IconEyeOff,
-} from "@tabler/icons-react";
-import "./login.css"; // Ensure path is correct
+import { IconAt, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
+import { toast } from "react-toastify"; // import toast
+import "./login.css";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = () => {
+    // Simple validation example
+    if (!email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+    if (!password.trim()) {
+      toast.error("Password is required");
+      return;
+    }
+    // Here you can add your login API call
+    // On success:
+    toast.success("Logged in successfully!");
+    // On failure, use toast.error("Login failed message");
+  };
 
   return (
     <div className="full-page">
@@ -17,7 +31,13 @@ export default function LoginForm() {
 
       <div className="right-half">
         <div className="login-container">
-          <form className="form_main" onSubmit={(e) => e.preventDefault()}>
+          <form
+            className="form_main"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
+          >
             <p className="heading">Login</p>
 
             <div className="inputContainer">
@@ -27,6 +47,8 @@ export default function LoginForm() {
                 id="email"
                 className="inputField"
                 type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
@@ -37,6 +59,8 @@ export default function LoginForm() {
                 id="password"
                 className="inputField"
                 type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
               <div
                 className="eyeIcon"
@@ -50,11 +74,9 @@ export default function LoginForm() {
               </div>
             </div>
 
-            <button id="button">Submit</button>
-
-            {/* <p id="or">----------OR----------</p>
-
-            <button id="google">Sign up with Google</button> */}
+            <button id="button" type="submit">
+              Submit
+            </button>
 
             <h5>Don't have an account</h5>
 

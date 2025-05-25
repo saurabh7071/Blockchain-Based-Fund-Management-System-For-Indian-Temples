@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   IconUser,
   IconMail,
@@ -11,10 +11,11 @@ import Image from "next/image";
 import metamaskLogo from "@/public/metamask-logo.png";
 import "./signup.css";
 import { useMetamask } from "@/app/hooks/useMetamask";
+import { toast } from "react-toastify";
 
 export default function SignupForm() {
   const [step, setStep] = useState(1);
-  const { connectWallet, account} = useMetamask();
+  const { connectWallet, account } = useMetamask();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -24,86 +25,68 @@ export default function SignupForm() {
     otp: "",
   });
 
-  const [formErrors, setFormErrors] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    password: "",
-  });
-
-  // Single string for toast error messages
-  const [toastError, setToastError] = useState("");
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData({ ...formData, [id]: value });
-
-    // Clear errors & toast on input change
-    setFormErrors((prev) => ({ ...prev, [id]: "" }));
-    setToastError("");
   };
 
   const validateStepOne = (): boolean => {
-    const errors: typeof formErrors = {
-      name: "",
-      phone: "",
-      email: "",
-      password: "",
-    };
-
     if (!formData.name.trim()) {
-      errors.name = "Full Name is required.";
+      toast.error("Full Name is required.");
+      return false;
     }
 
     if (!formData.phone.trim()) {
-      errors.phone = "Mobile Number is required.";
+      toast.error("Mobile Number is required.");
+      return false;
     } else if (!/^[0-9]{10}$/.test(formData.phone)) {
-      errors.phone = "Enter a valid 10-digit mobile number.";
+      toast.error("Enter a valid 10-digit mobile number.");
+      return false;
     }
 
     if (!formData.email.trim()) {
-      errors.email = "Email is required.";
+      toast.error("Email is required.");
+      return false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = "Enter a valid email address.";
+      toast.error("Enter a valid email address.");
+      return false;
     }
 
     if (!formData.password.trim()) {
-      errors.password = "Password is required.";
-    } else if (formData.password.length < 6) {
-      errors.password = "Password must be at least 6 characters.";
-    } else if (!/[A-Z]/.test(formData.password)) {
-      errors.password = "Password must include at least one uppercase letter.";
-    } else if (!/[0-9]/.test(formData.password)) {
-      errors.password = "Password must include at least one number.";
-    } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
-      errors.password = "Password must include at least one special character.";
-    }
-
-    setFormErrors(errors);
-
-    // Collect error messages to toast string
-    const errorMessages = Object.values(errors).filter((e) => e !== "");
-    if (errorMessages.length > 0) {
-      setToastError(errorMessages.join(" | "));
+      toast.error("Password is required.");
       return false;
-    } else {
-      setToastError("");
-      return true;
     }
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters.");
+      return false;
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      toast.error("Password must include at least one uppercase letter.");
+      return false;
+    }
+    if (!/[0-9]/.test(formData.password)) {
+      toast.error("Password must include at least one number.");
+      return false;
+    }
+    if (!/[!@#$%^&*(),.?\":{}|<>]/.test(formData.password)) {
+      toast.error("Password must include at least one special character.");
+      return false;
+    }
+
+    return true;
   };
 
   const handleOTPSubmit = () => {
     if (formData.otp !== "123456") {
-      setToastError("Invalid or expired OTP");
+      toast.error("Invalid or expired OTP");
       return;
     }
-    setToastError("");
     setStep(3);
   };
 
   const handleSubmitSignup = async () => {
     if (!account) {
-      alert("Please connect your wallet before submitting.");
+      toast.error("Please connect your wallet before submitting.");
       return;
     }
 
@@ -122,26 +105,24 @@ export default function SignupForm() {
 
       const result = await response.json();
       if (response.ok) {
-        alert("Signup successful!");
+        toast.success("Signup successful!");
         console.log("Saved user:", result);
       } else {
-        alert(`Signup failed: ${result.message}`);
+        toast.error(`Signup failed: ${result.message}`);
       }
     } catch (err) {
       console.error("Signup error:", err);
+      toast.error("Something went wrong. Please try again later.");
     }
   };
 
   const handleConnectWallet = () => {
     connectWallet((message, redirectToMetaMask) => {
-      setToastError(message);
+      toast.error(message);
       if (redirectToMetaMask) {
         setTimeout(() => {
           window.open("https://metamask.io/download/", "_blank");
-          setToastError("");
         }, 4000);
-      } else {
-        setTimeout(() => setToastError(""), 4000);
       }
     });
   };
@@ -152,17 +133,11 @@ export default function SignupForm() {
 
       <div className="right-half">
         <div className="login-container">
-          {/* Toast Error above the form */}
-          {toastError && (
-            <div className="toastError" role="alert" aria-live="assertive">
-              {toastError}
-            </div>
-          )}
-
           <form className="form_main" onSubmit={(e) => e.preventDefault()}>
             {step === 1 && (
               <>
                 <p className="heading">Sign Up</p>
+
                 <div className="inputContainer">
                   <IconUser size={16} stroke={2} className="inputIcon" />
                   <input
@@ -225,26 +200,22 @@ export default function SignupForm() {
                   id="button"
                   type="button"
                   onClick={() => {
-                    if (validateStepOne()) {
-                      setStep(2);
-                    }
+                    if (validateStepOne()) setStep(2);
                   }}
                 >
                   Send OTP
                 </button>
+                <h5>Already have an account</h5>
+            <div className="signupContainer">
+              <a href="/login">Login</a>
+            </div>
               </>
             )}
 
             {step === 2 && (
               <>
                 <p className="heading">OTP Verification</p>
-                <p
-                  style={{
-                    marginBottom: "15px",
-                    textAlign: "center",
-                    fontSize: "0.9em",
-                  }}
-                >
+                <p className="otpText">
                   We have sent an email verification OTP on your email ID.
                   <br />
                   This OTP lasts only for 5 minutes.
@@ -278,11 +249,7 @@ export default function SignupForm() {
                 </div>
                 <p className="connect">Connect Your Metamask</p>
                 <p className="connect">Wallet</p>
-                <button
-                  id="button"
-                  type="button"
-                  onClick={handleConnectWallet}
-                >
+                <button id="button" type="button" onClick={handleConnectWallet}>
                   {account ? "Wallet Connected" : "Connect Wallet"}
                 </button>
                 {account && (
@@ -293,11 +260,6 @@ export default function SignupForm() {
                 </button>
               </>
             )}
-            <h5>Already have an account</h5>
-
-            <div className="signupContainer">
-              <a href="/login">Login</a>
-            </div>
           </form>
         </div>
       </div>

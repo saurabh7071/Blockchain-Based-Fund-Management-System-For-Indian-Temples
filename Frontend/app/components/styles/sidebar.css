@@ -3,21 +3,14 @@
   top: 4rem; /* Below a 64px navbar */
   left: 0;
   height: calc(100vh - 4rem);
-  background-color: #f3c623;
+  background-color: #FFB22C;
   color: #3a0519;
   transition: width 0.3s ease;
   z-index: 40;
   overflow: hidden;
+  width: 12rem;
   display: flex;
   flex-direction: column;
-}
-
-.sidebar.collapsed {
-  width: 3.5rem; /* 14 */
-}
-
-.sidebar.expanded {
-  width: 12rem; /* 48 */
 }
 
 .nav-list {
@@ -39,7 +32,7 @@
 }
 
 .nav-link:hover {
-  background-color: #ffd466;
+  background-color: #FA812F;
 }
 
 .icon {
@@ -53,11 +46,6 @@
   color: #3a0519; /* icon color */
 }
 
-.sidebar.collapsed .icon {
-  /* center icon horizontally in collapsed sidebar */
-  margin-left: auto;
-  margin-right: auto;
-}
 
 .label {
   margin-left: 1rem;
@@ -67,17 +55,17 @@
   max-width: 100%; /* default full */
 }
 
-.label.hide {
-  opacity: 0;
-  max-width: 0;
-}
-
-.label.show {
+/* .label.show {
   opacity: 1;
-  max-width: 200px; /* enough space for text */
-}
+  max-width: 200px; /* enough space for text } */
 .nav-link.active {
-  background-color: #ffd466; /* or your active background color *//* or your active text color */
+  background-color: #FA812F; /* or your active background color *//* or your active text color */
   font-weight: 600;
 }
 
+@media (max-width: 768px) {
+  .sidebar {
+    width: 0;
+    padding: 0;
+  }
+}

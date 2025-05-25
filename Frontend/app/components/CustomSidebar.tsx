@@ -1,25 +1,54 @@
 "use client";
-import { useState } from "react";
-import { IconHome, IconUser, IconSettings } from "@tabler/icons-react";
+import { useState, useEffect } from "react";
+import { IconHome, IconUser, IconSettings, IconList } from "@tabler/icons-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";  // import this
+import { usePathname } from "next/navigation";
 import "./styles/sidebar.css";
 
-const navLinks = [
-  { label: "Home", href: "/", icon: <IconHome size={20} /> },
-  { label: "Register", href: "/register", icon: <IconUser size={20} /> },
-  { label: "Confirm", href: "/confirm", icon: <IconSettings size={20} /> },
-];
+// Dummy function — replace with real role-fetching logic
+// const useUserRole = (): "superadmin" | "templeadmin" | null => {
+//   // Example: use context or fetch logic here
+//   const [role, setRole] = useState<"superadmin" | "templeadmin" | null>(null);
+
+//   useEffect(() => {
+//     // Replace with your logic to fetch role (e.g., from MongoDB/API)
+//     const fetchRole = async () => {
+//       const wallet = window.localStorage.getItem("wallet"); // Or from context
+//       if (wallet === "") {
+//         setRole("superadmin");
+//       } else {
+//         setRole("templeadmin");
+//       }
+//     };
+//     fetchRole();
+//   }, []);
+
+//   return role;
+// };
 
 export default function Sidebar() {
-  const [isHovered, setIsHovered] = useState(false);
-  const pathname = usePathname(); // get current URL path
+  const pathname = usePathname();
+//  const role = useUserRole();
+const role = "superadmin"; // Hardcoded for testing, replace with useUserRole()
+
+  const superAdminLinks = [
+    { label: "Register", href: "/superadmin/register-temple", icon: <IconUser size={20} /> },
+    { label: "Confirm", href: "/superadmin/dashboard/confirm-temple", icon: <IconSettings size={20} /> },
+    { label: "List of Registered", href: "/superadmin/dashboard/registered-temples", icon: <IconList size={20} /> },
+  ];
+
+  const templeAdminLinks = [
+    { label: "Register Campaign", href: "/templeadmin/dashboard/register-campaign", icon: <IconHome size={20} /> },
+    // Add temple admin-specific links here
+  ];
+
+  const navLinks = role === "superadmin" ? superAdminLinks : templeAdminLinks;
+
+  if (!role) return null; // or a loader
 
   return (
     <aside
-      className={`sidebar ${isHovered ? "expanded" : "collapsed"}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={`sidebar`}
     >
       <ul className="nav-list">
         {navLinks.map((link, index) => {
@@ -31,7 +60,7 @@ export default function Sidebar() {
                 className={`nav-link ${isActive ? "active" : ""}`}
               >
                 <div className="icon">{link.icon}</div>
-                <span className={`label ${isHovered ? "show" : "hide"}`}>
+                <span className={`label`}>
                   {link.label}
                 </span>
               </Link>

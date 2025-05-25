@@ -30,7 +30,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Navbar />
           <div className="flex flex-1">
             <Sidebar />
-            <main className="flex-1 ml-14 md:ml-48 pt-16 p-4 transition-all duration-300">
+            <main
+              className="flex-1 pt-16 p-4 transition-all duration-300"
+              style={{
+                marginLeft: "12rem",
+                paddingLeft: "1rem",
+                paddingTop: "1rem",
+              }}
+            >
               {children}
             </main>
           </div>

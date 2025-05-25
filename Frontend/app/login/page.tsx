@@ -75,7 +75,7 @@ export default function LoginForm() {
             </div>
 
             <button id="button" type="submit">
-              Submit
+              Login
             </button>
 
             <h5>Don't have an account</h5>

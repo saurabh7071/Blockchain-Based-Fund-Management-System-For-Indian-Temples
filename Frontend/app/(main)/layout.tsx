@@ -1,7 +1,7 @@
 // app/layout.tsx
 "use client";
 
-import "./globals.css";
+import "../globals.css";
 import { ReactNode } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/CustomSidebar";

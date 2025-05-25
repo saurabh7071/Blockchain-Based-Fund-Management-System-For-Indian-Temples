@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "ethers": "^6.14.0",
-    "lucide-react": "^0.510.0",
-    "metamask": "^0.0.1-security"
-  }
-}

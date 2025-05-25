@@ -7,10 +7,7 @@ export const useMetamask = () => {
   const [account, setAccount] = useState<string | null>(null);
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
-
-  const SUPER_ADMIN_ADDRESS = "0x2973CCafB0A9b0439a80d082d9c5ACf254033dF7";
 
   // Setup provider
   useEffect(() => {
@@ -32,7 +29,6 @@ export const useMetamask = () => {
         if (accounts.length > 0) {
           const connectedAccount = accounts[0];
           setAccount(connectedAccount);
-          setIsSuperAdmin(connectedAccount === SUPER_ADMIN_ADDRESS);
           await connectToPolygon();
         }
       } catch (err) {
@@ -61,7 +57,6 @@ export const useMetamask = () => {
       const accounts = await provider.send("eth_requestAccounts", []);
       const connectedAccount = accounts[0];
       setAccount(connectedAccount);
-      setIsSuperAdmin(connectedAccount === SUPER_ADMIN_ADDRESS);
       await connectToPolygon();
     } catch (err: any) {
       if (err.code === 4001) {
@@ -107,7 +102,6 @@ export const useMetamask = () => {
     account,
     connectWallet,
     error,
-    isSuperAdmin,
     loading,
   };
 };

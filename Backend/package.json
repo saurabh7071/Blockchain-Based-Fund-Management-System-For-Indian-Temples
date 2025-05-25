@@ -6,6 +6,9 @@
   "author": "saurabh vaidya",
   "type": "module",
   "main": "src/index.js",
+  "directories": {
+    "test": "test"
+  },
   "scripts": {
     "dev": "nodemon src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"

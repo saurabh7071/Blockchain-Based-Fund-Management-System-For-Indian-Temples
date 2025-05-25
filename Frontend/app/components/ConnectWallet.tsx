@@ -1,6 +1,4 @@
-// app/components/ConnectWallet.tsx
 "use client";
-
 import { useMetamask } from "../hooks/useMetamask";
 
 const ConnectWallet = () => {

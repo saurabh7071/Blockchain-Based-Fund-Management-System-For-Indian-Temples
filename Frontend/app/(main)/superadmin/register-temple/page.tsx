@@ -23,18 +23,30 @@ const RegisterTemplePage = () => {
     e.preventDefault();
     setIsLoading(true);
 
+    const token = sessionStorage.getItem("accessToken");
+
     try {
-      const res = await fetch("/api/temples/register", {
+      const res = await fetch("http://localhost:5050/api/v1/templeAdmin/register-Temple-Admin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.authorityName,
+          email: form.email,
+          phone: form.phone,
+          templeName: form.templeName,
+          templeLocation: form.location,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to submit form");
 
-      toast.success("✅ Temple registered successfully!");
+      const data = await res.json();
+      console.log("Success response:", data); 
+      toast.success("Temple registered successfully!");
+
       setForm({
         templeName: "",
         authorityName: "",

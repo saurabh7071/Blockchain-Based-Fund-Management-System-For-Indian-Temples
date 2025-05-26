@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 contract TempleRegistry {
+    
     // Hardcoded Super Admin address (MetaMask verified)
     address public constant superAdmin = 0x2973CCafB0A9b0439a80d082d9c5ACf254033dF7;
 

@@ -1,49 +1,41 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { IconHome, IconUser, IconSettings, IconList } from "@tabler/icons-react";
 import Link from "next/link";
+
+
 import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { IconHome, IconUser, IconSettings, IconList } from "@tabler/icons-react";
 import "./styles/sidebar.css";
-
-// Dummy function — replace with real role-fetching logic
-// const useUserRole = (): "superadmin" | "templeadmin" | null => {
-//   // Example: use context or fetch logic here
-//   const [role, setRole] = useState<"superadmin" | "templeadmin" | null>(null);
-
-//   useEffect(() => {
-//     // Replace with your logic to fetch role (e.g., from MongoDB/API)
-//     const fetchRole = async () => {
-//       const wallet = window.localStorage.getItem("wallet"); // Or from context
-//       if (wallet === "") {
-//         setRole("superadmin");
-//       } else {
-//         setRole("templeadmin");
-//       }
-//     };
-//     fetchRole();
-//   }, []);
-
-//   return role;
-// };
 
 export default function Sidebar() {
   const pathname = usePathname();
+
   const router = useRouter();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 //  const role = useUserRole();
 const role = "superadmin"; // Hardcoded for testing, replace with useUserRole()
 
+  // Detect role from the route
+  const isSuperAdmin = pathname.startsWith("/superadmin");
+  const isTempleAdmin = pathname.startsWith("/templeadmin");
+
+
   const superAdminLinks = [
+    { label: "Dashboard", href: "/superadmin/dashboard", icon: <IconHome size={20} /> },
     { label: "Register", href: "/superadmin/register-temple", icon: <IconUser size={20} /> },
-    { label: "Confirm", href: "/superadmin/dashboard/confirm-temple", icon: <IconSettings size={20} /> },
-    { label: "List of Registered", href: "/superadmin/dashboard/registered-temples", icon: <IconList size={20} /> },
+    { label: "Confirm", href: "/superadmin//confirm-temple", icon: <IconSettings size={20} /> },
+    { label: "List of Registered", href: "/superadmin/registered-temples", icon: <IconList size={20} /> },
   ];
 
   const templeAdminLinks = [
-    { label: "Register Campaign", href: "/templeadmin/dashboard/register-campaign", icon: <IconHome size={20} /> },
-    // Add temple admin-specific links here
+    { label: "Dashboard", href: "/templeadmin/dashboard", icon: <IconHome size={20} /> },
+    // Add more temple admin links as needed
   ];
+
 
   const handleLogout = async () => {
       try {
@@ -82,12 +74,18 @@ const role = "superadmin"; // Hardcoded for testing, replace with useUserRole()
 
   const navLinks = role === "superadmin" ? superAdminLinks : templeAdminLinks;
 
-  if (!role) return null; // or a loader
+  const navLinks = isSuperAdmin
+    ? superAdminLinks
+    : isTempleAdmin
+    ? templeAdminLinks
+    : [];
+
+
+  // Don’t show the sidebar if the route doesn't match any role prefix
+  if (navLinks.length === 0) return null;
 
   return (
-    <aside
-      className={`sidebar`}
-    >
+    <aside className="sidebar">
       <ul className="nav-list">
         {navLinks.map((link, index) => {
           const isActive = pathname === link.href;
@@ -98,9 +96,7 @@ const role = "superadmin"; // Hardcoded for testing, replace with useUserRole()
                 className={`nav-link ${isActive ? "active" : ""}`}
               >
                 <div className="icon">{link.icon}</div>
-                <span className={`label`}>
-                  {link.label}
-                </span>
+                <span className="label">{link.label}</span>
               </Link>
               
             </li>

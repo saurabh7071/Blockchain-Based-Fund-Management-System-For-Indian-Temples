@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { blacklistToken } from "../middlewares/auth.middleware.js";
+import jwt from "jsonwebtoken";
 
 dotenv.config({
     path: './.env'
@@ -29,9 +30,9 @@ const generateAccessAndRefreshTokens = async (userId) => {
 // seed script for superadmin
 const seedScriptForSuperAdmin = asyncHandler(async (req, res) => {
     // Validate required environment variables
-    const { SUPERADMIN_NAME, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD, SUPERADMIN_PHONE } = process.env;
+    const { SUPERADMIN_NAME, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD, SUPERADMIN_PHONE, SUPERADMIN_WALLET } = process.env;
 
-    if (!SUPERADMIN_NAME || !SUPERADMIN_EMAIL || !SUPERADMIN_PASSWORD || !SUPERADMIN_PHONE) {
+    if (!SUPERADMIN_NAME || !SUPERADMIN_EMAIL || !SUPERADMIN_PASSWORD || !SUPERADMIN_PHONE || !SUPERADMIN_WALLET) {
         throw new ApiError(500, "Missing required environment variables for SuperAdmin creation.");
     }
 
@@ -65,7 +66,9 @@ const seedScriptForSuperAdmin = asyncHandler(async (req, res) => {
         email: SUPERADMIN_EMAIL,
         password: SUPERADMIN_PASSWORD,
         phone: SUPERADMIN_PHONE,
+        walletAddress: SUPERADMIN_WALLET,
         role: "superAdmin",
+        loginType: "email",
     });
 
     if (!superAdmin) {
@@ -77,7 +80,7 @@ const seedScriptForSuperAdmin = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 201, 
-                { email: superAdmin.email, role: superAdmin.role, phone: superAdmin.phone }, 
+                { email: superAdmin.email, role: superAdmin.role, phone: superAdmin.phone, wallet_id: superAdmin.walletAddress }, 
                 "SuperAdmin created successfully."
             )
         );
@@ -140,7 +143,7 @@ const logoutSuperAdmin = asyncHandler(async (req, res) => {
     if (token) {
         blacklistToken(token);
     }
-    
+
     await User.findByIdAndUpdate(
         req.user._id,
         {
@@ -183,7 +186,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
 
         // decoded token me se userId (token) fetch karne ka 
-        const user = await User.findById(decodedToken?._id)
+        const user = await User.findById(decodedToken?._id).select("+refreshToken")
 
         // validate Fetch Userid (token)
         if (!user) {
@@ -203,7 +206,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         }
 
         // if both tokens are match - generate new token
-        const { accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
 
         // return response 
         return res
@@ -222,13 +225,14 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 })
 
+
 // change password 
 const changePassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body
 
     const user = await User.findById(req.user?._id).select("+password")
 
-    if(!user){
+    if (!user) {
         throw new ApiError(404, "User not Found")
     }
 
@@ -242,7 +246,7 @@ const changePassword = asyncHandler(async (req, res) => {
     // Check if the new password same as the old password 
     const isSameAsOldPass = await user.comparePassword(newPassword)
 
-    if(isSameAsOldPass) {
+    if (isSameAsOldPass) {
         throw new ApiError(400, "New Password can not be the same as the old Password!!")
     }
 
@@ -267,7 +271,7 @@ const getCurrentSuperAdmin = asyncHandler(async (req, res) => {
 import mongoose from "mongoose";
 
 
-export { 
+export {
     seedScriptForSuperAdmin,
     loginSuperAdmin,
     logoutSuperAdmin,

@@ -1,6 +1,5 @@
 "use client";
 
-import { withAuth } from "@/app/lib/authMiddleware";
 import { useState, useEffect } from "react";
 import { BrowserProvider, Contract, ethers } from "ethers";
 
@@ -247,4 +246,4 @@ const SuperAdmin = () => {
   );
 };
 
-export default withAuth(SuperAdmin);
+export default SuperAdmin;

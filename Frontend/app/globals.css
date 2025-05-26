@@ -21,7 +21,7 @@ body {
 
 /* Navbar styles */
 nav {
-  @apply bg-[#F3C623] h-16 sticky top-0 z-50 shadow-md;
+  @apply bg-[#FFB22C] h-16 sticky top-0 z-50 shadow-md;
   padding: 0 1rem; 
 }
 
@@ -134,7 +134,7 @@ button:hover {
 
 /* Footer */
 .footer {
-  @apply bg-[#F3C623] text-[#3A0519] text-center py-4;
+  @apply bg-[#FFB22C] text-[#3A0519] text-center py-4;
 }
 
 /* Home page welcome section */

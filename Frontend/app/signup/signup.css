@@ -7,7 +7,11 @@
   align-items: center;
   overflow: hidden;
   justify-content: center;
+<<<<<<< HEAD
   background-color: #ffb22c;
+=======
+  background-color: #FFB22C;
+>>>>>>> 7aa2773e45d47fcaefffebb280952da74e94d737
   padding: 30px 30px 30px 30px;
   border-radius: 30px;
   box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.062);
@@ -38,7 +42,7 @@
   height: 40px;
   background-color: transparent;
   border: none;
-   background-color:#FEF3E2;
+  background-color:#FEF3E2;
   border-bottom: 2px solid rgb(173, 173, 173);
   border-radius: 30px;
   margin: 10px 0;
@@ -136,7 +140,7 @@
 
 .left-half {
   width: 50%;
-  background-color: #F3C623;
+  background-color: #FFB22C;
 }
 
 .right-half {

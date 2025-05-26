@@ -117,8 +117,13 @@ export default function LoginForm() {
               </div>
             </div>
 
+<<<<<<< HEAD:Frontend/app/superadminlogin/page.tsx
             <button id="button" type="submit" disabled={isLoading}>
               {isLoading ? "Loading..." : "Submit"}
+=======
+            <button id="button" type="submit">
+              Login
+>>>>>>> 7aa2773e45d47fcaefffebb280952da74e94d737:Frontend/app/login/page.tsx
             </button>
           </form>
         </div>

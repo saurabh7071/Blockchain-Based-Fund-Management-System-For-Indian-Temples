@@ -1,0 +1,76 @@
+.card {
+  padding: 1rem;
+  background-color: #fff;
+  max-width: 320px;
+  border-radius: 20px;
+  box-shadow: 10px 10px #FFB22C;
+  border: 3px solid #FFB22C;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+}
+
+.title span {
+  position: relative;
+  padding: 0.5rem;
+  background-color: #10B981;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title span svg {
+  color: #ffffff;
+  height: 1rem;
+  width: 1rem;
+}
+
+.title-text {
+  margin-left: 0.5rem;
+  color: #374151;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.data {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.data p {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  color: #FFB22C;
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  font-weight: 700;
+  text-align: left;
+}
+.home-container {
+  padding: 2rem;
+}
+
+.dashboard-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 2rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+.details-text {
+  font-size: 0.875rem;
+  color: #6b7280; /* Tailwind gray-500 */
+  margin-top: -0.5rem;
+  padding-left: 0.25rem;
+}

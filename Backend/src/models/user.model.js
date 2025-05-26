@@ -66,6 +66,12 @@ const userSchema = new Schema({
         enum: ['email', 'google', 'facebook', 'phone'],
         required: true
     },
+    walletAddress: {
+        type: String,
+        lowercase: true,
+        trim: true,
+        default: null,
+    },
     createdBy: {
         type: Schema.Types.ObjectId,
         ref: "User",

@@ -1,28 +1,71 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { IconAt, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
 import { toast } from "react-toastify"; // import toast
 import "./login.css";
+import { apiClient } from "@/app/utils/apiClient"; // Import your API client
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = () => {
-    // Simple validation example
-    if (!email.trim()) {
-      toast.error("Email is required");
+  useEffect(() => {
+    // Check if user is already logged in
+    const accessToken = sessionStorage.getItem("accessToken");
+    if (accessToken) {
+      router.push("/superadmin/dashboard");
+    }
+  }, [router]);
+
+  const handleSubmit = async () => {
+    if (!email.trim() || !password.trim()) {
+      toast.error("Email and password are required");
       return;
     }
-    if (!password.trim()) {
-      toast.error("Password is required");
-      return;
+
+    setIsLoading(true);
+
+    try {
+      const response = await apiClient("http://localhost:5050/api/v1/superAdmin/login-superAdmin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: "include", // Include cookies in the request
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        toast.error(result.message || "Failed to login. Please try again.");
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Logged in successfully!");
+
+        // Store tokens and user data
+        sessionStorage.setItem("accessToken", result.data.accessToken);
+        localStorage.setItem("refreshToken", result.data.refreshToken);
+        localStorage.setItem("user_data", JSON.stringify(result.data.user));
+
+        // Redirect to the dashboard
+        router.push("/superadmin/dashboard");
+      } else {
+        toast.error(result.message || "Login failed");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-    // Here you can add your login API call
-    // On success:
-    toast.success("Logged in successfully!");
-    // On failure, use toast.error("Login failed message");
   };
 
   return (
@@ -74,15 +117,9 @@ export default function LoginForm() {
               </div>
             </div>
 
-            <button id="button" type="submit">
-              Submit
+            <button id="button" type="submit" disabled={isLoading}>
+              {isLoading ? "Loading..." : "Submit"}
             </button>
-
-            <h5>Don't have an account</h5>
-
-            <div className="signupContainer">
-              <a href="/signup">Sign up</a>
-            </div>
           </form>
         </div>
       </div>

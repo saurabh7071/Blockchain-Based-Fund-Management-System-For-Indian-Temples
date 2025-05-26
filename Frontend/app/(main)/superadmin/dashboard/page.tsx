@@ -1,8 +1,9 @@
 "use client";
 
+import { withAuth } from "@/app/lib/authMiddleware";
 import { useState, useEffect } from "react";
 import { BrowserProvider, Contract, ethers } from "ethers";
-
+import { apiClient } from "@/app/utils/apiClient"; // Import your API client
 const SuperAdmin = () => {
   const [templeAddress, setTempleAddress] = useState("");
   const [status, setStatus] = useState("");
@@ -246,4 +247,4 @@ const SuperAdmin = () => {
   );
 };
 
-export default SuperAdmin;
+export default withAuth(SuperAdmin);

@@ -35,13 +35,13 @@ export default function Sidebar() {
   const logoutUrl = isSuperAdmin
     ? "http://localhost:5050/api/v1/superAdmin/logout-superAdmin"
     : isTempleAdmin
-    ? "http://localhost:5050/api/v1/templeAdmin/logout-templeAdmin"
+    ? "http://localhost:5050/api/v1/templeAdmin/logout-Temple-Admin"
     : "";
 
   const redirectTo = isSuperAdmin
     ? "/superadminlogin"
     : isTempleAdmin
-    ? "/templeadminlogin"
+    ? "/templelogin"
     : "/";
 
   return (

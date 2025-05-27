@@ -26,6 +26,33 @@ const generateAccessAndRefreshTokens = async (userId) => {
     }
 }
 
+const storeWalletAddress = asyncHandler(async (req, res) => {
+    const { walletAddress } = req.body;
+
+    if (!walletAddress) {
+        throw new ApiError(400, "Wallet address is required");
+    }
+
+    const userId = req.user._id; // Assuming user ID is extracted from the access token
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    user.walletAddress = walletAddress;
+    await user.save();
+
+    res.status(200).json(
+        new ApiResponse(
+            200, 
+            user.walletAddress, 
+            "Wallet address stored successfully"
+        ),
+    );
+});
+
 // Controller: Register Temple Admin
 const registerTempleAdmin = asyncHandler(async (req, res) => {
     const { name, email, phone, templeName, templeLocation } = req.body;
@@ -82,7 +109,8 @@ const registerTempleAdmin = asyncHandler(async (req, res) => {
         createdBy: superAdminId,
         role: "templeAdmin",
         loginType: "email",
-        status: "active",   
+        status: "active",
+        walletAddress: null, // Assuming wallet address is not required at registration
     });
 
     await newAdmin.save();
@@ -270,7 +298,7 @@ const refreshAccessTempleAdminToken = asyncHandler(async (req, res) => {
 
         // decoded token me se userId (token) fetch karne ka 
         const user = await User.findById(decodedToken?._id).select("+refreshToken")
-        
+
         // validate Fetch Userid (token)
         if (!user) {
             throw new ApiError(401, "Invalid Refresh Token")
@@ -377,6 +405,7 @@ const getAllTempleAdmins = asyncHandler(async (req, res) => {
 });
 
 export {
+    storeWalletAddress,
     registerTempleAdmin,
     loginTempleAdmin,
     logoutTempleAdmin,

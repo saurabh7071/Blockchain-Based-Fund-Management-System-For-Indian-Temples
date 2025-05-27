@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+    storeWalletAddress,
     registerTempleAdmin,
     loginTempleAdmin,
     logoutTempleAdmin,
@@ -16,6 +17,7 @@ const router = Router();
 
 
 router.route("/register-Temple-Admin").post(verifyJWT, authorizeRoles("superAdmin"), registerTempleAdmin);
+router.route("/store-wallet-address").post(verifyJWT, authorizeRoles("templeAdmin"), storeWalletAddress);
 router.route("/login-Temple-Admin").post(loginTempleAdmin);
 router.route("/logout-Temple-Admin").post(verifyJWT, authorizeRoles("templeAdmin"), logoutTempleAdmin);
 router.route("/refresh-token").post(refreshAccessTempleAdminToken);

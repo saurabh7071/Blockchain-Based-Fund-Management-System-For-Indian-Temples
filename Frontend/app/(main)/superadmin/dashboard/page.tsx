@@ -1,11 +1,15 @@
-
-// app/page.tsx
 "use client";
 
-export default function Page() {
+import AuthWrapper from "@/app/components/AuthWrapper";
+
+const DashboardPage = () => {
   return (
-    <div className="home-container">
-      <h1>Welcome Super Admin. What will you like to do today??</h1>
-    </div>
+    <AuthWrapper role="superAdmin">
+      <div className="home-container">
+        <h1>Welcome Super Admin. What will you like to do today??</h1>
+      </div>
+    </AuthWrapper>
   );
-}
+};
+
+export default DashboardPage;

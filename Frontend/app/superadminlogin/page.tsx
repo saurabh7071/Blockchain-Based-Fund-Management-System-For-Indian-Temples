@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { IconAt, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
 import { toast } from "react-toastify"; // import toast
 import "./login.css";
-import { apiClient } from "@/app/utils/apiClient"; // Import your API client
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +29,7 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      const response = await apiClient("http://localhost:5050/api/v1/superAdmin/login-superAdmin", {
+      const response = await fetch("http://localhost:5050/api/v1/superAdmin/login-superAdmin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

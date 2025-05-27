@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 // import { useRouter } from "next/navigation"; // Import router for redirection
 import { useMetamask } from "../hooks/useMetamask";
+import "./styles/navbar.css"; // Import your CSS styles
 
 export default function Navbar() {
   const { account, connectWallet, loading } = useMetamask();

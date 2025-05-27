@@ -1,6 +1,6 @@
-export const refreshAccessToken = async () => {
+export const refreshAccessToken = async (endpoint: string) => {
     try {
-        const response = await fetch("http://localhost:5050/api/v1/superAdmin/refresh-Access-Token", {
+        const response = await fetch(endpoint, {
             method: "POST",
             credentials: "include", // Include cookies in the request
             headers: {

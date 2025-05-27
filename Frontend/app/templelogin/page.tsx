@@ -7,39 +7,69 @@ import {
   IconEyeOff,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify"; // import toast for notifications
 import "../superadminlogin/login.css";
 
 export default function LoginForm() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
-    if (typeof window.ethereum === "undefined") {
-      router.push("/templeadmin/connect-wallet");
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault(); 
+    
+    if (!email.trim() || !password.trim()) {
+      toast.error("Email and password are required");
       return;
     }
+    setIsLoading(true);
 
     try {
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      const account = accounts[0];
-      console.log("Connected account:", account);
-
       // 🔥 Call your backend API to check registration
-      const res = await fetch(`/api/templeadmin/check-registration?address=${account}`);
-      const data = await res.json();
+      const response = await fetch("http://localhost:5050/api/v1/templeAdmin/login-Temple-Admin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      });
 
-      if (!res.ok) throw new Error(data.message || "Failed to verify registration");
-
-      if (data.registered) {
-        router.push("/templeadmin/dashboard");
-      } else {
-        router.push("/templeadmin/make-a-request");
+      if (!response.ok) {
+        const result = await response.json();
+        toast.error(result.message || "Failed to login. Please try again.");
+        return;
       }
-    } catch (error) {
-      console.error("Error:", error);
-      router.push("/templeadmin/connect-wallet");
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Logged in successfully!");
+
+        // Store tokens and user data
+        sessionStorage.setItem("accessToken", result.data.accessToken);
+        localStorage.setItem("refreshToken", result.data.refreshToken);
+        localStorage.setItem("user_data", JSON.stringify(result.data.user));
+
+        // Check if Metamask wallet address is stored in the database
+        const walletAddress = result.data.user.walletAddress;
+
+        if (!walletAddress) {
+          // Redirect to connect-wallet page if wallet address is not stored
+          router.push("/templeadmin/connect-wallet");
+        } else {
+          // Redirect to dashboard if wallet address is already stored
+          router.push("/templeadmin/dashboard");
+        }
+      } else {
+        toast.error(result.message || "Login failed");
+      }
+    } catch (error: any) {
+      console.error("Login error:", error.message);
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -55,7 +85,15 @@ export default function LoginForm() {
 
             <div className="inputContainer">
               <IconAt size={16} stroke={2} className="inputIcon" />
-              <input placeholder="Username" id="username" className="inputField" type="text" />
+              <input
+                placeholder="Email"
+                id="email"
+                className="inputField"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
 
             <div className="inputContainer">
@@ -65,12 +103,17 @@ export default function LoginForm() {
                 id="password"
                 className="inputField"
                 type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
               <div className="eyeIcon" onClick={() => setShowPassword(!showPassword)}>
                 {showPassword ? <IconEyeOff size={16} stroke={2} /> : <IconEye size={16} stroke={2} />}
               </div>
             </div>
-            <button id="button" type="submit">Submit</button>
+            <button id="button" type="submit" disabled={isLoading}>
+              {isLoading ? "Logging in..." : "Submit"}
+            </button>
           </form>
         </div>
       </div>

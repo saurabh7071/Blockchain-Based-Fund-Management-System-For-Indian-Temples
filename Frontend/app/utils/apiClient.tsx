@@ -1,8 +1,8 @@
-import { refreshAccessToken } from "@/app/utils/superadminAccessToken";
+import { refreshAccessToken } from "./refreshAccessToken";
 
-export const apiClient = async (url: string, options: RequestInit = {}) => {
+export const apiClient = async (url: string, options: RequestInit = {}, role: "superAdmin" | "templeAdmin") => {
     try {
-        const accessToken = sessionStorage.getItem("accessToken");
+        let accessToken = sessionStorage.getItem("accessToken");
 
         // Add the access token to the headers
         const headers = {
@@ -10,20 +10,27 @@ export const apiClient = async (url: string, options: RequestInit = {}) => {
             Authorization: `Bearer ${accessToken}`,
         };
 
-        const response = await fetch(url, { ...options, headers });
+        let response = await fetch(url, { ...options, headers });
 
-        // If the access token is expired, refresh it
+        // If the access token is expired or missing, refresh it
         if (response.status === 401) {
-            console.warn("Access token expired. Refreshing...");
-            const newAccessToken = await refreshAccessToken();
+            console.warn("Access token expired or missing. Refreshing...");
+
+            // Determine the refresh endpoint based on the role
+            const refreshEndpoint =
+                role === "superAdmin"
+                    ? "http://localhost:5050/api/v1/superAdmin/refresh-Access-Token"
+                    : "http://localhost:5050/api/v1/templeAdmin/refresh-token";
+
+            accessToken = await refreshAccessToken(refreshEndpoint);
 
             // Retry the original request with the new access token
             const retryHeaders = {
                 ...options.headers,
-                Authorization: `Bearer ${newAccessToken}`,
+                Authorization: `Bearer ${accessToken}`,
             };
 
-            return await fetch(url, { ...options, headers: retryHeaders });
+            response = await fetch(url, { ...options, headers: retryHeaders });
         }
 
         return response;

@@ -6,7 +6,7 @@ import { emailForOtpVerification } from "../utils/emailTemplateForOTP.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendEmail } from "../utils/sendEmail.js";
-
+import { resendOtpUtility } from "../utils/resendOtp.js";
 // generate access and refresh tokens
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -63,14 +63,30 @@ const registerUser = asyncHandler(async (req, res) => {
         phone,
         role: "user",
         loginType: "email",
+        status: "pending",
+        walletAddress: null
     })
 
     if (!user) {
         throw new ApiError(500, "Something went wrong while registering the user");
     }
 
+    // Generate OTP
+    const otp = crypto.randomBytes(3).toString("hex");
+    user.resetOtp = otp;
+    user.resetOtpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes expiry
+    user.lastOtpSentAt = Date.now(); // Update the last OTP sent time
+    await user.save({ validateBeforeSave: false });
+
+    const otpEmail = emailForOtpVerification(user.email, otp, "emailVerification");
+    try {
+        await sendEmail(user.email, "Email Verification OTP", otpEmail);
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while sending email")
+    }
+
     // remove password and refresh token filed from response
-    const createdUser = await User.findById(user._id).select("-password -refreshToken -status")
+    const createdUser = await User.findById(user._id).select("-password -refreshToken")
 
     if (!createdUser) {
         throw new ApiError(500, "Something went wrong while registering the data")
@@ -83,28 +99,119 @@ const registerUser = asyncHandler(async (req, res) => {
             new ApiResponse(
                 201,
                 createdUser,
-                "User Data Registered Successfully !!"
+                "User registered successfully. Please verify your email with the OTP sent."
             )
         )
 })
+
+const verifyEmailWithOtp = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+
+    // validation - email and otp
+    if (!email || !otp) {
+        throw new ApiError(400, "Email and OTP are required");
+    }
+
+    // check if user exists
+    const user = await User.findOne({ email }).select("+resetOtp +resetOtpExpires +lastOtpSentAt");
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (user.status === 'active') {
+        throw new ApiError(400, "Email is already verified");
+    }
+
+    // check if OTP is valid
+    if (user.resetOtp !== otp) {
+        throw new ApiError(400, "Invalid OTP");
+    }
+
+    // check if OTP is expired
+    if (user.resetOtpExpires < Date.now()) {
+        throw new ApiError(400, "OTP has expired");
+    }
+
+    // update user status to active and clear OTP fields
+    user.status = 'active';
+    user.resetOtp = undefined;
+    user.resetOtpExpires = undefined;
+    user.lastOtpSentAt = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+
+    // remove password and refresh token filed from response
+    const verifiedUser = await User.findById(user._id).select("-password -refreshToken");
+
+    const options = {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None", // Important for production frontend + backend cross-origin
+    };
+    return res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(
+            200, 
+            { 
+                user: verifiedUser,
+                accessToken,
+                refreshToken
+            },
+            "Email verified successfully")
+    );
+});
+
+const resendOtp = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const user = await User.findOne({ email }).select("+resetOtp +resetOtpExpires");
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (user.status === "active") {
+        throw new ApiError(400, "User is already verified");
+    }
+
+    const result = await resendOtpUtility(user, "Resend OTP Verification");
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {},
+            result.message || "OTP resent successfully. Please check your email."
+        )
+    );
+});
 
 // User Login
 const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body
 
     // validation - username or email
-    if (!email) {
-        throw new ApiError(400, "email is required")
+    if (!email || !password) {
+        throw new ApiError(400, "email and password required")
     }
 
     // check if user exists
-    const user = await User.findOne({$or: [{ email }, { loginType: email }]}).select("+password")
+    const user = await User.findOne({ $or: [{ email }, { loginType: email }] }).select("+password")
     if (!user) {
         throw new ApiError(404, "User not found")
     }
 
     if (user.loginType !== 'email') {
         throw new ApiError(400, "Invalid login type")
+    }
+
+    if(user.role !== 'user') {
+        throw new ApiError(400, "use can login only with user role");
     }
 
     // check password
@@ -114,16 +221,15 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     // generate access and refresh tokens 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
-
-    // send access token and refresh token - cookie 
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
     const options = {
         httpOnly: true,
         secure: true,
         sameSite: "None", // Important for production frontend + backend cross-origin
     }
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
     // return reponse
     return res
@@ -242,28 +348,19 @@ const requestPasswordReset = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found");
     }
 
-    // Check if OTP was sent recently
-    const cooldownPeriod = 60 * 1000; // 30 seconds
-    if (user.lastOtpSentAt && Date.now() - user.lastOtpSentAt < cooldownPeriod) {
-        throw new ApiError(429, "You can only request a new OTP after 60 seconds");
-    }
-
-    // Generate a one-time code or token
+    // Generate OTP
     const otp = crypto.randomBytes(3).toString("hex");
-
     user.resetOtp = otp;
-    user.resetOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+    user.resetOtpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes expiry
     user.lastOtpSentAt = Date.now(); // Update the last OTP sent time
     await user.save({ validateBeforeSave: false });
 
-    const sentOtp = emailForOtpVerification(user.email, otp);
+    const otpEmail = emailForOtpVerification(user.email, otp, "passwordReset");
     try {
-        await sendEmail(user.email, "Password Reset OTP", sentOtp);
+        await sendEmail(user.email, "Password Reset OTP", otpEmail);
     } catch (error) {
-        throw new ApiError(500, "Failed to send email. Please try again later.");
+        throw new ApiError(500, "Something went wrong while sending email")
     }
-
-    // Return response
     return res.status(200).json(
         new ApiResponse(200, {}, "Password reset token sent to your email")
     );
@@ -295,10 +392,39 @@ const resetPasswordWithOtp = asyncHandler(async (req, res) => {
     user.password = newPassword;
     user.resetOtp = undefined; // Clear the OTP
     user.resetOtpExpires = undefined; // Clear the expiration
+    user.lastOtpSentAt = undefined; // Clear the last OTP sent time
     await user.save({ validateBeforeSave: false });
 
     return res.status(200).json(
         new ApiResponse(200, {}, "Password reset successfully")
+    );
+});
+
+const resendPasswordResetOtp = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const user = await User.findOne({ email }).select("+resetOtp +resetOtpExpires +lastOtpSentAt");
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Ensure the user has not already changed their password
+    if (!user.resetOtp || !user.resetOtpExpires || user.resetOtpExpires < Date.now()) {
+        throw new ApiError(400, "OTP has expired or is invalid. Please request a new password reset.");
+    }
+
+    const result = await resendOtpUtility(user, "Password Reset OTP");
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {},
+            result.message || "Password reset OTP resent successfully. Please check your email."
+        )
     );
 });
 
@@ -313,11 +439,14 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 export {
     registerUser,
+    verifyEmailWithOtp,
+    resendOtp,
     loginUser,
     logoutUser,
     refreshAccessToken,
     requestPasswordReset,
     resetPasswordWithOtp,
+    resendPasswordResetOtp,
     getCurrentUser,
     generateAccessAndRefreshTokens
 }

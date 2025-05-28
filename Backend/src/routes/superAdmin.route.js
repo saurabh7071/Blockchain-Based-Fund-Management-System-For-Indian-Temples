@@ -5,7 +5,8 @@ import {
     logoutSuperAdmin,
     refreshAccessToken,
     changePassword,
-    getCurrentSuperAdmin
+    getCurrentSuperAdmin,
+    confirmTempleAdminRegistration
 } from "../controllers/superAdmin.controller.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 import { authorizeRoles } from "../middlewares/role.middleware.js"
@@ -20,5 +21,6 @@ router.route("/logout-superAdmin").post(verifyJWT, authorizeRoles("superAdmin"),
 router.route("/refresh-Access-Token").post(refreshAccessToken);
 router.route("/change-password").post(verifyJWT, authorizeRoles("superAdmin"), changePassword);
 router.route("/current-superAdmin").get(verifyJWT, authorizeRoles("superAdmin"), getCurrentSuperAdmin);
+router.route("/confirm-temple-admin-registration").post(verifyJWT, authorizeRoles("superAdmin"), confirmTempleAdminRegistration);
 
 export default router

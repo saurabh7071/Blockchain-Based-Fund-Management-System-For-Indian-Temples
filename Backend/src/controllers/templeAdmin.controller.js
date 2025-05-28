@@ -33,22 +33,33 @@ const storeWalletAddress = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Wallet address is required");
     }
 
-    const userId = req.user._id; // Assuming user ID is extracted from the access token
-
-    const user = await User.findById(userId);
-
-    if (!user) {
-        throw new ApiError(404, "User not found");
+    const templeAdmin = await User.findById(req.user._id);
+    if (!templeAdmin || templeAdmin.role !== "templeAdmin") {
+        throw new ApiError(404, "Temple Admin not found");
     }
 
-    user.walletAddress = walletAddress;
-    await user.save();
+    // Check if wallet address is already connected
+    if (templeAdmin.walletAddress) {
+        if (templeAdmin.walletAddress !== walletAddress) {
+            throw new ApiError(400, "You can only connect to the wallet address already stored in the database");
+        }
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                { walletAddress: templeAdmin.walletAddress },
+                "Wallet address is already connected"
+            )
+        );
+    }
+
+    templeAdmin.walletAddress = walletAddress;
+    await templeAdmin.save({ validateBeforeSave: false });
 
     res.status(200).json(
         new ApiResponse(
             200, 
-            user.walletAddress, 
-            "Wallet address stored successfully"
+            { walletAddress: templeAdmin.walletAddress },
+            "Wallet address connected successfully"
         ),
     );
 });
@@ -109,7 +120,7 @@ const registerTempleAdmin = asyncHandler(async (req, res) => {
         createdBy: superAdminId,
         role: "templeAdmin",
         loginType: "email",
-        status: "active",
+        status: "pending",
         walletAddress: null, // Assuming wallet address is not required at registration
     });
 

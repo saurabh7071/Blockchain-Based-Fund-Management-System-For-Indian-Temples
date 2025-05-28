@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthWrapper from "@/app/components/AuthWrapper";
@@ -32,4 +31,6 @@ export default function DashboardPage() {
       </div>
     </AuthWrapper>
   );
-}
+};
+
+export default TempleAdminDashboard;

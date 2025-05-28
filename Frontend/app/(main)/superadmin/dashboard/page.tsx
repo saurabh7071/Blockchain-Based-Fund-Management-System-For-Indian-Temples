@@ -1,4 +1,7 @@
 "use client";
+import Card from "@/app/components/Card";
+import { FaDonate, FaPlaceOfWorship, FaUsers } from "react-icons/fa";
+
 
 import AuthWrapper from "@/app/components/AuthWrapper";
 

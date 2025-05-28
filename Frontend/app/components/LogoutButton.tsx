@@ -7,12 +7,21 @@ import React from "react";
 interface LogoutButtonProps {
   logoutUrl: string;
   redirectTo: string;
+  children?: React.ReactNode;
+  onLogoutClick?: () => void;
 }
 
-export default function LogoutButton({ logoutUrl, redirectTo }: LogoutButtonProps) {
+export default function LogoutButton({
+  logoutUrl,
+  redirectTo,
+  children,
+  onLogoutClick,
+}: LogoutButtonProps) {
   const router = useRouter();
 
   const confirmLogout = () => {
+    onLogoutClick?.(); // Close dropdown immediately
+
     const toastId = toast(
       ({ closeToast }) => (
         <div>
@@ -85,11 +94,8 @@ export default function LogoutButton({ logoutUrl, redirectTo }: LogoutButtonProp
   };
 
   return (
-    <button
-      onClick={confirmLogout}
-      className="bg-red-600 text-white px-4 py-2 rounded w-full text-left"
-    >
-      Logout
+    <button onClick={confirmLogout}>
+      {children ? children : "Logout"}
     </button>
   );
 }

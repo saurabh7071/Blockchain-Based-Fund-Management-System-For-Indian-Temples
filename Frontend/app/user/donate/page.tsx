@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import { Heart, Shield, Award, TrendingUp, TrendingDown } from 'lucide-react';
 

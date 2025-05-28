@@ -1,266 +1,495 @@
 "use client";
+
 import { useState } from "react";
 import {
-  IconUser,
-  IconMail,
-  IconLock,
-  IconEye,
-  IconEyeOff,
-} from "@tabler/icons-react";
-import Image from "next/image";
-import metamaskLogo from "@/public/metamask-logo.png";
-import "./signup.css";
-import { useMetamask } from "@/app/hooks/useMetamask";
+  Eye,
+  EyeOff,
+  Phone,
+  Mail,
+  User,
+  Wallet,
+  CheckCircle,
+  ArrowRight,
+  ArrowLeft,
+} from "lucide-react";
+import { useMetamask } from "../hooks/useMetamask";
 import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
-export default function SignupForm() {
-  const [step, setStep] = useState(1);
-  const { connectWallet, account } = useMetamask();
-  const [showPassword, setShowPassword] = useState(false);
+export default function TempleFundSignup() {
+  const router = useRouter();
+  const {
+    account,
+    error: walletError,
+    connectWallet: connectWithMetamask,
+  } = useMetamask();
+
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
-    phone: "",
     email: "",
+    phone: "",
     password: "",
-    otp: "",
   });
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormData({ ...formData, [id]: value });
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
-  const validateStepOne = (): boolean => {
-    if (!formData.name.trim()) {
-      toast.error("Full Name is required.");
-      return false;
-    }
-
-    if (!formData.phone.trim()) {
-      toast.error("Mobile Number is required.");
-      return false;
-    } else if (!/^[0-9]{10}$/.test(formData.phone)) {
-      toast.error("Enter a valid 10-digit mobile number.");
-      return false;
-    }
-
-    if (!formData.email.trim()) {
-      toast.error("Email is required.");
-      return false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      toast.error("Enter a valid email address.");
-      return false;
-    }
-
-    if (!formData.password.trim()) {
-      toast.error("Password is required.");
-      return false;
-    }
-    if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters.");
-      return false;
-    }
-    if (!/[A-Z]/.test(formData.password)) {
-      toast.error("Password must include at least one uppercase letter.");
-      return false;
-    }
-    if (!/[0-9]/.test(formData.password)) {
-      toast.error("Password must include at least one number.");
-      return false;
-    }
-    if (!/[!@#$%^&*(),.?\":{}|<>]/.test(formData.password)) {
-      toast.error("Password must include at least one special character.");
-      return false;
-    }
-
-    return true;
+  const validateMobile = (phone) => {
+    const mobileRegex = /^[6-9]\d{9}$/;
+    return mobileRegex.test(phone.replace(/\s/g, ""));
   };
 
-  const handleOTPSubmit = () => {
-    if (formData.otp !== "123456") {
-      toast.error("Invalid or expired OTP");
-      return;
-    }
-    setStep(3);
+  const validatePassword = (password) => {
+    return (
+      password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)
+    );
   };
 
-  const handleSubmitSignup = async () => {
-    if (!account) {
-      toast.error("Please connect your wallet before submitting.");
-      return;
+  const validateName = (name) => {
+    return name.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(name);
+  };
+
+  // Step 1: User Details Validation
+  const validateStep1 = () => {
+    const newErrors = {};
+
+    if (!validateName(formData.name)) {
+      newErrors.name =
+        "Name must be at least 2 characters and contain only letters";
     }
 
-    const completeForm = {
+    if (!validateEmail(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!validateMobile(formData.phone)) {
+      newErrors.phone = "Please enter a valid 10-digit Indian mobile number";
+    }
+
+    if (!validatePassword(formData.password)) {
+      newErrors.password =
+        "Password must be at least 8 characters with uppercase, lowercase, and number";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("Please fix the highlighted errors before proceeding.");
+      return false; // important
+    }
+
+    return true; // important
+  };
+
+  // Handle form input changes
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  // Handle OTP input
+  const handleOtpChange = (index, value) => {
+    if (value.length <= 1 && /^\d*$/.test(value)) {
+      const newOtp = [...otp];
+      newOtp[index] = value;
+      setOtp(newOtp);
+
+      // Auto-focus next input
+      if (value && index < 5) {
+        const nextInput = document.getElementById(`otp-${index + 1}`);
+        if (nextInput) nextInput.focus();
+      }
+    }
+  };
+
+  // Handle OTP backspace
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-${index - 1}`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  // Simulate OTP sending
+  const sendOtp = async () => {
+    setIsLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setIsLoading(false);
+    toast.success("OTP sent successfully!");
+    setCurrentStep(2);
+  };
+
+  // Simulate OTP verification
+  const verifyOtp = async () => {
+    const otpString = otp.join("");
+    if (otpString.length === 6) {
+      setIsLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setIsLoading(false);
+      toast.success("OTP verified successfully!");
+      setCurrentStep(3);
+    } else {
+      setErrors({ otp: "Please enter complete 6-digit OTP" });
+      toast.error("Invalid OTP. Please enter all 6 digits.");
+    }
+  };
+
+  // Simulate wallet connection
+  const connectWallet = async () => {
+    setIsLoading(true);
+    await connectWithMetamask();
+    setIsLoading(false);
+  };
+
+  // Complete registration
+  const completeRegistration = async () => {
+    setIsLoading(true);
+
+    const userData = {
       ...formData,
       walletAddress: account,
-      role: "user",
+      registrationDate: new Date().toISOString(),
+      isVerified: true,
     };
 
-    try {
-      const response = await fetch("/api/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(completeForm),
-      });
+    // Simulate database save
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-      const result = await response.json();
-      if (response.ok) {
-        toast.success("Signup successful!");
-        console.log("Saved user:", result);
-      } else {
-        toast.error(`Signup failed: ${result.message}`);
+    setIsLoading(false);
+    toast.success("Registration completed successfully! Redirecting...");
+
+    // wait 2 seconds before redirecting
+    setTimeout(() => {
+      router.push("/user/dashboard");
+      console.log("User data saved:", userData);
+    }, 1000);
+  };
+
+  const handleNext = async () => {
+    if (currentStep === 1) {
+      if (validateStep1()) {
+        await sendOtp();
       }
-    } catch (err) {
-      console.error("Signup error:", err);
-      toast.error("Something went wrong. Please try again later.");
+    } else if (currentStep === 2) {
+      await verifyOtp();
+    } else if (currentStep === 3) {
+      if (!account) {
+        await connectWallet();
+      } else {
+        await completeRegistration();
+      }
     }
   };
 
-  const handleConnectWallet = () => {
-    connectWallet((message, redirectToMetaMask) => {
-      toast.error(message);
-      if (redirectToMetaMask) {
-        setTimeout(() => {
-          window.open("https://metamask.io/download/", "_blank");
-        }, 4000);
-      }
-    });
+  const handleBack = () => {
+    setCurrentStep((prev) => Math.max(1, prev - 1));
+    setErrors({});
   };
 
   return (
-    <div className="full-page">
-      <div className="left-half"></div>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-orange-100">
+        {/* Header */}
+        <div className="p-8 pb-6 text-center border-b border-orange-100">
+          <div className="relative w-24 h-24 mx-auto mb-4">
+            {/* Outer glow ring */}
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-red-400 rounded-full opacity-30 animate-pulse"></div>
 
-      <div className="right-half">
-        <div className="login-container">
-          <form className="form_main" onSubmit={(e) => e.preventDefault()}>
-            {step === 1 && (
-              <>
-                <p className="heading">Sign Up</p>
+            {/* Outer animated dashed ring — bigger and thicker */}
+            <div
+              className="absolute inset-0 rounded-full border-4 border-dashed border-orange-300 animate-spin"
+              style={{ animation: "spin 20s linear infinite" }}
+            ></div>
 
-                <div className="inputContainer">
-                  <IconUser size={16} stroke={2} className="inputIcon" />
+            {/* Wrapper for Main Logo Circle */}
+            <div className="absolute inset-2 flex items-center justify-center">
+              {/* Main logo circle */}
+              <div className="relative w-20 h-20 bg-gradient-to-br from-orange-500 via-red-500 to-orange-600 rounded-full flex items-center justify-center shadow-xl border-2 border-white">
+                {/* Inner gradient overlay */}
+                <div className="absolute inset-1 bg-gradient-to-t from-transparent to-white opacity-20 rounded-full"></div>
+                {/* Om symbol */}
+                <span className="relative text-white text-3xl font-bold drop-shadow-lg transform hover:scale-110 transition-transform duration-300">
+                  ॐ
+                </span>
+                {/* Decorative dots */}
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full shadow-md animate-bounce"></div>
+                <div
+                  className="absolute -bottom-1 -left-1 w-2 h-2 bg-yellow-300 rounded-full shadow-md animate-bounce"
+                  style={{ animationDelay: "0.5s" }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Bottom reflection */}
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-6 bg-gradient-to-t from-orange-200 to-transparent rounded-full opacity-40 blur-sm"></div>
+          </div>
+
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            Temple Fund Management
+          </h1>
+          <p className="text-gray-600 text-sm">
+            Decentralized Donation Platform
+          </p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="px-8 pt-6">
+          <div className="flex items-center justify-between mb-8">
+            {[1, 2, 3].map((step) => (
+              <div key={step} className="flex items-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    currentStep >= step
+                      ? "bg-orange-500 text-white"
+                      : "bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  {currentStep > step ? (
+                    <CheckCircle className="w-5 h-5" />
+                  ) : (
+                    step
+                  )}
+                </div>
+                {step < 3 && (
+                  <div
+                    className={`h-1 w-16 mx-2 ${
+                      currentStep > step ? "bg-orange-500" : "bg-gray-200"
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <div className="px-8 pb-8">
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Personal Information
+              </h2>
+
+              {/* Name Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
-                    placeholder="Full Name"
-                    id="name"
-                    className="inputField"
                     type="text"
                     value={formData.name}
-                    onChange={handleInputChange}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
+                      errors.name ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter your full name"
                   />
                 </div>
+                {errors.name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                )}
+              </div>
 
-                <div className="inputContainer">
-                  <IconUser size={16} stroke={2} className="inputIcon" />
+              {/* Email Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
-                    placeholder="Mobile Number"
-                    id="phone"
-                    className="inputField"
-                    type="text"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="inputContainer">
-                  <IconMail size={16} stroke={2} className="inputIcon" />
-                  <input
-                    placeholder="Email"
-                    id="email"
-                    className="inputField"
                     type="email"
                     value={formData.email}
-                    onChange={handleInputChange}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
+                      errors.email ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter your email"
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                )}
+              </div>
 
-                <div className="inputContainer">
-                  <IconLock size={16} stroke={2} className="inputIcon" />
+              {/* Mobile Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Contact Number
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
-                    placeholder="Password"
-                    id="password"
-                    className="inputField"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
+                      errors.phone ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter 10-digit mobile number"
+                    maxLength="10"
+                  />
+                </div>
+                {errors.phone && (
+                  <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+                )}
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
-                    onChange={handleInputChange}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
+                    className={`w-full pl-4 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
+                      errors.password ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Create a strong password"
                   />
-                  <div
-                    className="eyeIcon"
+                  <button
+                    type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                   >
                     {showPassword ? (
-                      <IconEyeOff size={16} stroke={2} />
+                      <EyeOff className="w-5 h-5" />
                     ) : (
-                      <IconEye size={16} stroke={2} />
+                      <Eye className="w-5 h-5" />
                     )}
-                  </div>
+                  </button>
                 </div>
-
-                <button
-                  id="button"
-                  type="button"
-                  onClick={() => {
-                    if (validateStepOne()) setStep(2);
-                  }}
-                >
-                  Send OTP
-                </button>
-                <h5>Already have an account</h5>
-            <div className="signupContainer">
-              <a href="/login">Login</a>
-            </div>
-              </>
-            )}
-
-            {step === 2 && (
-              <>
-                <p className="heading">OTP Verification</p>
-                <p className="otpText">
-                  We have sent an email verification OTP on your email ID.
-                  <br />
-                  This OTP lasts only for 5 minutes.
-                </p>
-                <div className="inputContainer">
-                  <input
-                    placeholder="Enter OTP"
-                    id="otp"
-                    className="inputField"
-                    type="text"
-                    value={formData.otp}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <button id="button" type="button" onClick={handleOTPSubmit}>
-                  Submit OTP
-                </button>
-              </>
-            )}
-
-            {step === 3 && (
-              <>
-                <div style={{ textAlign: "center", marginBottom: "20px" }}>
-                  <Image
-                    src={metamaskLogo}
-                    alt="MetaMask"
-                    width={60}
-                    height={60}
-                    priority
-                  />
-                </div>
-                <p className="connect">Connect Your Metamask</p>
-                <p className="connect">Wallet</p>
-                <button id="button" type="button" onClick={handleConnectWallet}>
-                  {account ? "Wallet Connected" : "Connect Wallet"}
-                </button>
-                {account && (
-                  <div className="connectedAccount">Connected: {account}</div>
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
                 )}
-                <button id="button" type="button" onClick={handleSubmitSignup}>
-                  Register
+              </div>
+            </div>
+          )}
+
+          {currentStep === 2 && (
+            <div className="text-center space-y-6">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Verify Email Id
+              </h2>
+              <p className="text-gray-600">
+                We've sent a 6-digit OTP to {formData.email}
+              </p>
+
+              <div className="flex justify-center space-x-3">
+                {otp.map((digit, index) => (
+                  <input
+                    key={index}
+                    id={`otp-${index}`}
+                    type="text"
+                    value={digit}
+                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    className="w-12 h-12 text-center text-xl font-semibold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                    maxLength="1"
+                  />
+                ))}
+              </div>
+
+              {errors.otp && (
+                <p className="text-red-500 text-sm">{errors.otp}</p>
+              )}
+
+              <p className="text-sm text-gray-500">
+                Didn't receive the code?
+                <button className="text-orange-500 hover:text-orange-600 ml-1 font-medium">
+                  Resend OTP
                 </button>
-              </>
+              </p>
+            </div>
+          )}
+
+          {currentStep === 3 && (
+            <div className="text-center space-y-6">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Connect Your Wallet
+              </h2>
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
+                <Wallet className="w-10 h-10 text-white" />
+              </div>
+
+              {!account ? (
+                <div>
+                  <p className="text-gray-600 mb-6">
+                    Connect your crypto wallet to manage temple donations
+                    securely
+                  </p>
+                  {errors.wallet && (
+                    <p className="text-red-500 text-sm mb-4">{errors.wallet}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                  <p className="text-green-700 font-medium">
+                    Wallet Connected Successfully!
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1 break-all">
+                    {account}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-between mt-8">
+            {currentStep > 1 && (
+              <button
+                onClick={handleBack}
+                disabled={isLoading}
+                className="flex items-center px-6 py-3 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </button>
             )}
-          </form>
+
+            <button
+              onClick={handleNext}
+              disabled={isLoading}
+              className={`flex items-center px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 disabled:opacity-50 font-medium ${
+                currentStep === 1 ? "ml-auto" : ""
+              }`}
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+              ) : (
+                <>
+                  {currentStep === 3 && account
+                    ? "Complete Registration"
+                    : currentStep === 3
+                    ? "Connect Wallet"
+                    : currentStep === 2
+                    ? "Verify OTP"
+                    : "Continue"}
+                  {currentStep < 3 && <ArrowRight className="w-4 h-4 ml-2" />}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

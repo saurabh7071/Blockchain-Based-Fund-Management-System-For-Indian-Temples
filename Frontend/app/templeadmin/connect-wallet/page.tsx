@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import metamaskLogo from "@/public/metamask-logo.png";
-import "@/app/signup/signup.css";
 import { useMetamask } from "@/app/hooks/useMetamask";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";

@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname
 
     // Check if the path is public (login page)
-    const isPublicPath = path === "/superadminlogin" || path === "/templelogin";
+    const isPublicPath = path === "/superadminlogin" || path === "/templelogin" || path === "/login";
 
     // Get the token from cookies
     const accessToken = request.cookies.get("accessToken")?.value

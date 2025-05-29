@@ -1,16 +1,14 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 
 export default function TempleFundLogin() {
-    const router = useRouter();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-  const [errors, setErrors] = useState({});
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{ [field: string]: string }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -22,13 +20,13 @@ export default function TempleFundLogin() {
   const validateForm = () => {
     const newErrors: any = {};
 
-    if (!formData.email.trim()) {
+    if (!email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!validateEmail(formData.email)) {
+    } else if (!validateEmail(email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
-    if (!formData.password.trim()) {
+    if (!password.trim()) {
       newErrors.password = "Password is required";
     }
 
@@ -36,12 +34,13 @@ export default function TempleFundLogin() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+  useEffect(() => {
+    // Check if user is already logged in
+    const accessToken = sessionStorage.getItem("accessToken");
+    if (accessToken) {
+      router.push("/user/dashboard");
     }
-  };
+  }, [router]);
 
   const handleLogin = async () => {
     if (!validateForm()) {
@@ -52,21 +51,39 @@ export default function TempleFundLogin() {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      const response = await fetch("http://localhost:5050/api/v1/users/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: "include", // Include cookies in the request
+      })
 
-      toast.success("Login successful! Redirecting to dashboard...");
+      const result = await response.json();
 
-      setTimeout(() => {
-      router.push("/user/dashboard");
-    }, 1000);
-      // In real app:
-      // 1. API call
-      // 2. Store JWT token
-      // 3. Redirect to dashboard
-    } catch (error) {
-      toast.error("Invalid email or password. Please try again.");
-      setErrors({ general: "Invalid email or password. Please try again." });
+      if (!response.ok) {
+      // Display backend error message if available
+      toast.error(result.message || "Failed to login. Please try again.");
+      return;
+    }
+
+      if (result.success) {
+        toast.success("Logged in successfully!");
+
+        // Store tokens and user data
+        sessionStorage.setItem("accessToken", result.data.accessToken);
+        localStorage.setItem("refreshToken", result.data.refreshToken);
+        localStorage.setItem("user_data", JSON.stringify(result.data.user));
+
+        // Redirect to the dashboard
+        router.push("/user/dashboard");
+      } else {
+        toast.error(result.message || "Login failed");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      toast.error("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -130,11 +147,10 @@ export default function TempleFundLogin() {
                 <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                    errors.email ? "border-red-500" : "border-gray-300"
-                  }`}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${errors.email ? "border-red-500" : "border-gray-300"
+                    }`}
                   placeholder="Enter your email"
                   disabled={isLoading}
                 />
@@ -149,11 +165,10 @@ export default function TempleFundLogin() {
                 <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                    errors.password ? "border-red-500" : "border-gray-300"
-                  }`}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${errors.password ? "border-red-500" : "border-gray-300"
+                    }`}
                   placeholder="Enter your password"
                   disabled={isLoading}
                 />

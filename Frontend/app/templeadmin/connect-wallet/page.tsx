@@ -57,8 +57,10 @@ export default function ConfirmWalletPage() {
   };
 
   useEffect(() => {
+  if (account) {
     handleWalletConnect();
-  }, []);
+  }
+}, [account]);
 
   useEffect(() => {
     if (account) {
@@ -70,13 +72,6 @@ export default function ConfirmWalletPage() {
     }
   }, [account]);
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-lg text-gray-700">Loading wallet info...</div>;
-  }
-
-  if (error) {
-    return <div className="min-h-screen flex items-center justify-center text-red-500 text-lg">{error}</div>;
-  }
 
   if (connectedWallet) {
     return (

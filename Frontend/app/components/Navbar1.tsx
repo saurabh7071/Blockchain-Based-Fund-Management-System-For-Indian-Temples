@@ -12,7 +12,8 @@ export default function Navbar() {
   const { account, connectWallet, loading } = useMetamask();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [step, setStep] = useState(0); // 0 = hello, 1 = welcome, 2 = digital seva
-  const [showConnectButton, setShowConnectButton] = useState(false); // 👈 for delayed button show
+  const [showConnectedButton, setShowConnectedButton] = useState(false); // 👈 for delayed button show
+  
   const handleChangePassword = () => {
     alert("Change password functionality");
   };
@@ -33,13 +34,13 @@ export default function Navbar() {
 
   // Delayed Connect Wallet button if not connected
   useEffect(() => {
-    if (!account) {
+    if (account) {
       const timer = setTimeout(() => {
-        setShowConnectButton(true);
+        setShowConnectedButton(true);
       }, 2000);
       return () => clearTimeout(timer);
     } else {
-      setShowConnectButton(false);
+      setShowConnectedButton(false);
     }
   }, [account]);
 
@@ -114,7 +115,7 @@ export default function Navbar() {
           {/* Right side - Wallet + Dropdown */}
           <div className="flex items-center space-x-4">
             <AnimatePresence>
-              {!account && showConnectButton && (
+              {!account && (
                 <motion.button
                   key="connectwalletbutton"
                   onClick={connectWallet}
@@ -133,16 +134,21 @@ export default function Navbar() {
               )}
             </AnimatePresence>
 
-            {account && (
-              <button
-                onClick={connectWallet}
+            {account && showConnectedButton && (
+              <motion.button
+                  key="connectedwalletbutton"
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={fadeIn}
+                  transition={{ duration: 0.4 }}
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
               >
                 <Wallet className="w-4 h-4" />
                 <span>{`Connected: ${account.slice(0, 6)}...${account.slice(
                   -4
                 )}`}</span>
-              </button>
+              </motion.button>
             )}
 
             {/* User Dropdown */}

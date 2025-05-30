@@ -7,6 +7,8 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendEmail } from "../utils/sendEmail.js";
 import { resendOtpUtility } from "../utils/resendOtp.js";
+import { storeWalletAddressUtility } from "../utils/storeWalletAddress.js";
+
 // generate access and refresh tokens
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -24,6 +26,16 @@ const generateAccessAndRefreshTokens = async (userId) => {
         throw new ApiError(500, "Something went wrong while generating refresh and access token")
     }
 }
+
+const storeWalletAddressForUser = asyncHandler(async (req, res) => {
+    const { walletAddress } = req.body;
+
+    const result = await storeWalletAddressUtility(req.user._id, "user", walletAddress);
+
+    return res.status(200).json(
+        new ApiResponse(200, { walletAddress: result.walletAddress }, result.message)
+    );
+});
 
 // User Registration
 const registerUser = asyncHandler(async (req, res) => {
@@ -150,18 +162,18 @@ const verifyEmailWithOtp = asyncHandler(async (req, res) => {
         sameSite: "None", // Important for production frontend + backend cross-origin
     };
     return res.status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(
-        new ApiResponse(
-            200, 
-            { 
-                user: verifiedUser,
-                accessToken,
-                refreshToken
-            },
-            "Email verified successfully")
-    );
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    user: verifiedUser,
+                    accessToken,
+                    refreshToken
+                },
+                "Email verified successfully")
+        );
 });
 
 const resendOtp = asyncHandler(async (req, res) => {
@@ -210,7 +222,7 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid login type")
     }
 
-    if(user.role !== 'user') {
+    if (user.role !== 'user') {
         throw new ApiError(400, "use can login only with user role");
     }
 
@@ -438,6 +450,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 })
 
 export {
+    storeWalletAddressForUser,
     registerUser,
     verifyEmailWithOtp,
     resendOtp,

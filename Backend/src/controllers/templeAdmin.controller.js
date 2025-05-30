@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { blacklistToken } from "../middlewares/auth.middleware.js";
 import { templeAdminRegistrationEmail } from "../utils/emailTemplate.js";
+import { storeWalletAddressUtility } from "../utils/storeWalletAddress.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
@@ -29,37 +30,13 @@ const generateAccessAndRefreshTokens = async (userId) => {
 const storeWalletAddress = asyncHandler(async (req, res) => {
     const { walletAddress } = req.body;
 
-    if (!walletAddress) {
-        throw new ApiError(400, "Wallet address is required");
-    }
-
-    const templeAdmin = await User.findById(req.user._id);
-    if (!templeAdmin || templeAdmin.role !== "templeAdmin") {
-        throw new ApiError(404, "Temple Admin not found");
-    }
-
-    // Check if wallet address is already connected
-    if (templeAdmin.walletAddress) {
-        if (templeAdmin.walletAddress !== walletAddress) {
-            throw new ApiError(400, "You can only connect to the wallet address already stored in the database");
-        }
-        return res.status(200).json(
-            new ApiResponse(
-                200,
-                { walletAddress: templeAdmin.walletAddress },
-                "Wallet address is already connected"
-            )
-        );
-    }
-
-    templeAdmin.walletAddress = walletAddress;
-    await templeAdmin.save({ validateBeforeSave: false });
+    const result = await storeWalletAddressUtility(req.user._id, "templeAdmin", walletAddress);
 
     res.status(200).json(
         new ApiResponse(
             200, 
-            { walletAddress: templeAdmin.walletAddress },
-            "Wallet address connected successfully"
+            { walletAddress: templeAdmin.walletAddress},
+            result.message
         ),
     );
 });

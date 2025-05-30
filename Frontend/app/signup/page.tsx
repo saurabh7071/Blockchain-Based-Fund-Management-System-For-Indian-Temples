@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, ClipboardEvent, useEffect } from "react";
 import {
   Eye,
   EyeOff,
@@ -15,66 +15,58 @@ import {
 import { useMetamask } from "../hooks/useMetamask";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-
 export default function TempleFundSignup() {
   const router = useRouter();
+
+  useEffect(() => {
+    const accessToken = sessionStorage.getItem("accessToken");
+    if (accessToken) {
+      router.push("/user/dashboard");
+    }
+  }, [router]);
+  
   const {
     account,
-    error: walletError,
-    connectWallet: connectWithMetamask,
+    error,
+    connectWallet
   } = useMetamask();
 
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-  });
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
 
   // Validation functions
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validateMobile = (phone) => {
-    const mobileRegex = /^[6-9]\d{9}$/;
-    return mobileRegex.test(phone.replace(/\s/g, ""));
-  };
-
-  const validatePassword = (password) => {
-    return (
-      password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)
-    );
-  };
-
-  const validateName = (name) => {
-    return name.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(name);
-  };
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const validateMobile = (phone: string) => /^[6-9]\d{9}$/.test(phone.replace(/\s/g, ""));
+  const validatePassword = (password: string) =>
+    password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password);
+  const validateName = (name: string) =>
+    name.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(name);
 
   // Step 1: User Details Validation
   const validateStep1 = () => {
     const newErrors = {};
 
-    if (!validateName(formData.name)) {
+    if (!validateName(name)) {
       newErrors.name =
         "Name must be at least 2 characters and contain only letters";
     }
 
-    if (!validateEmail(formData.email)) {
+    if (!validateEmail(email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
-    if (!validateMobile(formData.phone)) {
+    if (!validateMobile(phone)) {
       newErrors.phone = "Please enter a valid 10-digit Indian mobile number";
     }
 
-    if (!validatePassword(formData.password)) {
+    if (!validatePassword(password)) {
       newErrors.password =
         "Password must be at least 8 characters with uppercase, lowercase, and number";
     }
@@ -83,24 +75,15 @@ export default function TempleFundSignup() {
 
     if (Object.keys(newErrors).length > 0) {
       toast.error("Please fix the highlighted errors before proceeding.");
-      return false; // important
+      return false;
     }
 
-    return true; // important
-  };
-
-  // Handle form input changes
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
+    return true;
   };
 
   // Handle OTP input
-  const handleOtpChange = (index, value) => {
-    if (value.length <= 1 && /^\d*$/.test(value)) {
+  const handleOtpChange = (index: number, value) => {
+    if (value.length <= 1) {
       const newOtp = [...otp];
       newOtp[index] = value;
       setOtp(newOtp);
@@ -113,88 +96,173 @@ export default function TempleFundSignup() {
     }
   };
 
+  const handleOtpPaste = (e: ClipboardEvent) => {
+  e.preventDefault();
+  const pastedData = e.clipboardData.getData("text").trim();
+
+  if (pastedData.length === 6) { // Ensure the pasted data is exactly 6 digits
+    const newOtp = pastedData.split("");
+    setOtp(newOtp);
+
+    // Auto-focus the last input field
+    const lastInput = document.getElementById(`otp-${newOtp.length - 1}`);
+    if (lastInput) lastInput.focus();
+  } else {
+    toast.error("Please paste a valid 6-digit OTP.");
+  }
+};
+
   // Handle OTP backspace
-  const handleOtpKeyDown = (index, e) => {
+  const handleOtpKeyDown = (index: number, e: KeyboardEvent) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       const prevInput = document.getElementById(`otp-${index - 1}`);
       if (prevInput) prevInput.focus();
     }
   };
 
-  // Simulate OTP sending
-  const sendOtp = async () => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    toast.success("OTP sent successfully!");
-    setCurrentStep(2);
-  };
-
-  // Simulate OTP verification
-  const verifyOtp = async () => {
-    const otpString = otp.join("");
-    if (otpString.length === 6) {
-      setIsLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setIsLoading(false);
-      toast.success("OTP verified successfully!");
-      setCurrentStep(3);
-    } else {
-      setErrors({ otp: "Please enter complete 6-digit OTP" });
-      toast.error("Invalid OTP. Please enter all 6 digits.");
-    }
-  };
-
-  // Simulate wallet connection
-  const connectWallet = async () => {
-    setIsLoading(true);
-    await connectWithMetamask();
-    setIsLoading(false);
-  };
-
-  // Complete registration
-  const completeRegistration = async () => {
-    setIsLoading(true);
-
-    const userData = {
-      ...formData,
-      walletAddress: account,
-      registrationDate: new Date().toISOString(),
-      isVerified: true,
-    };
-
-    // Simulate database save
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    setIsLoading(false);
-    toast.success("Registration completed successfully! Redirecting...");
-
-    // wait 2 seconds before redirecting
-    setTimeout(() => {
-      router.push("/user/dashboard");
-      console.log("User data saved:", userData);
-    }, 1000);
-  };
 
   const handleNext = async () => {
     if (currentStep === 1) {
       if (validateStep1()) {
-        await sendOtp();
+        await handleRegister();
       }
     } else if (currentStep === 2) {
-      await verifyOtp();
+      await handleVerifyOtp()
     } else if (currentStep === 3) {
-      if (!account) {
-        await connectWallet();
-      } else {
-        await completeRegistration();
-      }
+      await handleConnectMetamask();
     }
   };
 
   const handleBack = () => {
     setCurrentStep((prev) => Math.max(1, prev - 1));
     setErrors({});
+  };
+
+  const handleRegister = async () => {
+    if (!validateStep1()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:5050/api/v1/users/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, phone, password }),
+      })
+
+      const result = await response.json();
+      console.log("Registration result:", result);
+
+      if (!response.ok) {
+        toast.error(result.message || "Failed to register. Please try again.");
+        return;
+      }
+
+      if (result.success) {
+        toast.success("Registration successful! Please check your email for OTP.");
+        setCurrentStep(2);
+      }
+
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("An error occurred while registering. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Simulate OTP verification
+  const handleVerifyOtp = async () => {
+    const otpString = otp.join("");
+    if (otpString.length !== 6) {
+      toast.error("Please enter a valid 6-digit OTP");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:5050/api/v1/users/verify-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, otp: otpString }),
+        credentials: "include"
+      });
+
+      const result = await response.json();
+      console.log("OTP verification result:", result);
+
+      if (!response.ok) {
+        toast.error(result.message || "OTP verification failed. Please try again.");
+        return;
+      }
+
+      if (result.success) {
+        toast.success("OTP verified successfully!");
+
+        // Store tokens and user data
+        sessionStorage.setItem("accessToken", result.data.accessToken);
+        localStorage.setItem("refreshToken", result.data.refreshToken);
+        localStorage.setItem("user_data", JSON.stringify(result.data.user));
+
+        setCurrentStep(3);
+      }
+    } catch (error) {
+      console.error("OTP verification error:", error);
+      toast.error("An error occurred while verifying OTP. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+
+  };
+
+  const handleConnectMetamask = async () => {
+    setIsLoading(true);
+
+    try {
+      // Connect to Metamask
+      const walletAddress = await connectWallet();
+
+      if (!account) {
+        toast.error("Failed to connect to Metamask. Please try again.");
+        return;
+      }
+
+      // Store wallet address in the database
+      const accessToken = sessionStorage.getItem("accessToken");
+      const response = await fetch("http://localhost:5050/api/v1/users/store-wallet-address", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`, // Include access token for authentication
+        },
+        body: JSON.stringify({ walletAddress : account}),
+      });
+
+      const result = await response.json();
+      console.log("Store wallet address result:", result);
+
+      if (!response.ok) {
+        toast.error(result.message || "Failed to connect wallet. Please try again.");
+        return;
+      }
+
+      if (result.success) {
+        toast.success(result.message || "Wallet connected successfully!");
+        router.push("/user/dashboard"); // Redirect to dashboard
+      }
+    } catch (error) {
+      console.error("Metamask connection error:", error);
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -249,11 +317,10 @@ export default function TempleFundSignup() {
             {[1, 2, 3].map((step) => (
               <div key={step} className="flex items-center">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    currentStep >= step
-                      ? "bg-orange-500 text-white"
-                      : "bg-gray-200 text-gray-500"
-                  }`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= step
+                    ? "bg-orange-500 text-white"
+                    : "bg-gray-200 text-gray-500"
+                    }`}
                 >
                   {currentStep > step ? (
                     <CheckCircle className="w-5 h-5" />
@@ -263,9 +330,8 @@ export default function TempleFundSignup() {
                 </div>
                 {step < 3 && (
                   <div
-                    className={`h-1 w-16 mx-2 ${
-                      currentStep > step ? "bg-orange-500" : "bg-gray-200"
-                    }`}
+                    className={`h-1 w-16 mx-2 ${currentStep > step ? "bg-orange-500" : "bg-gray-200"
+                      }`}
                   />
                 )}
               </div>
@@ -290,11 +356,10 @@ export default function TempleFundSignup() {
                   <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                      errors.name ? "border-red-500" : "border-gray-300"
-                    }`}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${errors.name ? "border-red-500" : "border-gray-300"
+                      }`}
                     placeholder="Enter your full name"
                   />
                 </div>
@@ -312,11 +377,10 @@ export default function TempleFundSignup() {
                   <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                      errors.email ? "border-red-500" : "border-gray-300"
-                    }`}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${errors.email ? "border-red-500" : "border-gray-300"
+                      }`}
                     placeholder="Enter your email"
                   />
                 </div>
@@ -334,11 +398,10 @@ export default function TempleFundSignup() {
                   <Phone className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
                     type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                      errors.phone ? "border-red-500" : "border-gray-300"
-                    }`}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${errors.phone ? "border-red-500" : "border-gray-300"
+                      }`}
                     placeholder="Enter 10-digit mobile number"
                     maxLength="10"
                   />
@@ -356,13 +419,10 @@ export default function TempleFundSignup() {
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={(e) =>
-                      handleInputChange("password", e.target.value)
-                    }
-                    className={`w-full pl-4 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                      errors.password ? "border-red-500" : "border-gray-300"
-                    }`}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`w-full pl-4 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${errors.password ? "border-red-500" : "border-gray-300"
+                      }`}
                     placeholder="Create a strong password"
                   />
                   <button
@@ -390,7 +450,7 @@ export default function TempleFundSignup() {
                 Verify Email Id
               </h2>
               <p className="text-gray-600">
-                We've sent a 6-digit OTP to {formData.email}
+                We've sent a 6-digit OTP to {email}
               </p>
 
               <div className="flex justify-center space-x-3">
@@ -402,6 +462,7 @@ export default function TempleFundSignup() {
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    onPaste={handleOtpPaste}
                     className="w-12 h-12 text-center text-xl font-semibold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
                     maxLength="1"
                   />
@@ -470,9 +531,8 @@ export default function TempleFundSignup() {
             <button
               onClick={handleNext}
               disabled={isLoading}
-              className={`flex items-center px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 disabled:opacity-50 font-medium ${
-                currentStep === 1 ? "ml-auto" : ""
-              }`}
+              className={`flex items-center px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 disabled:opacity-50 font-medium ${currentStep === 1 ? "ml-auto" : ""
+                }`}
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -481,10 +541,10 @@ export default function TempleFundSignup() {
                   {currentStep === 3 && account
                     ? "Complete Registration"
                     : currentStep === 3
-                    ? "Connect Wallet"
-                    : currentStep === 2
-                    ? "Verify OTP"
-                    : "Continue"}
+                      ? "Connect Wallet"
+                      : currentStep === 2
+                        ? "Verify OTP"
+                        : "Continue"}
                   {currentStep < 3 && <ArrowRight className="w-4 h-4 ml-2" />}
                 </>
               )}

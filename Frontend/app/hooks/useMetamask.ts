@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { toast } from "react-toastify";
 
@@ -16,138 +16,106 @@ export const useMetamask = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // ✅ Detect MetaMask
   useEffect(() => {
-    if (typeof window !== "undefined" && window.ethereum) {
+    const initialize = async () => {
+      if (typeof window === "undefined") return;
+
+      if (!window.ethereum) {
+        const msg = "MetaMask is not installed. Redirecting to MetaMask...";
+        setError(msg);
+        toast.info(msg, { toastId: "metamask-not-installed" });
+
+        localStorage.setItem("redirectedToMetaMask", "true");
+        setTimeout(() => {
+          window.open("https://metamask.io/download.html", "_blank");
+        }, 2000);
+
+        setLoading(false);
+        return;
+      }
+
       const ethProvider = new ethers.BrowserProvider(window.ethereum);
       setProvider(ethProvider);
 
       if (localStorage.getItem("redirectedToMetaMask") === "true") {
         localStorage.removeItem("redirectedToMetaMask");
-        toast.success("MetaMask detected. Please connect your wallet.");
+        toast.success("MetaMask detected. Please connect your wallet.", { toastId: "metamask-detected" });
       }
-    } else if (typeof window !== "undefined") {
-      const msg = "MetaMask is not installed. Redirecting to download page...";
-      setError(msg);
-      setLoading(false);
-      toast.error(msg);
-      localStorage.setItem("redirectedToMetaMask", "true");
-      window.open("https://metamask.io/download.html", "_blank");
-    }
-  }, []);
-
-  // ✅ Check wallet connection
-  useEffect(() => {
-    const checkIfWalletIsConnected = async () => {
-      if (!provider) return;
 
       try {
-        const accounts: string[] = await provider.send("eth_accounts", []);
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
-          await connectToPolygon();
+        const accounts: string[] = await ethProvider.send("eth_requestAccounts", []);
+        if (accounts.length === 0) {
+          const msg = "No accounts found in MetaMask.";
+          setError(msg);
+          toast.error(msg, { toastId: "no-accounts-found" });
+          setLoading(false);
+          return;
         }
-      } catch (err) {
-        console.error("Error checking wallet connection:", err);
+
+        setAccount(accounts[0]);
+
+        toast.success("Wallet connected!", { toastId: "wallet-connected" });
+
+        const { chainId } = await ethProvider.getNetwork();
+        if (chainId !== BigInt(80002)) {
+          try {
+            await window.ethereum.request({
+              method: "wallet_switchEthereumChain",
+              params: [{ chainId: "0x13882" }],
+            });
+            toast.info("Switched to Polygon Amoy network.", { toastId: "network-switched" });
+          } catch (switchError: any) {
+            if (switchError.code === 4902) {
+              await window.ethereum.request({
+                method: "wallet_addEthereumChain",
+                params: [
+                  {
+                    chainId: "0x13882",
+                    chainName: "Polygon Amoy Testnet",
+                    nativeCurrency: {
+                      name: "MATIC",
+                      symbol: "MATIC",
+                      decimals: 18,
+                    },
+                    rpcUrls: ["https://rpc-amoy.polygon.technology"],
+                    blockExplorerUrls: ["https://amoy.polygonscan.com"],
+                  },
+                ],
+              });
+              toast.success("Successfully added Polygon Amoy network!", { toastId: "network-added" });
+            } else {
+              const msg = "Please switch to the Polygon Amoy network.";
+              setError(msg);
+              toast.error(msg, { toastId: "switch-network-error" });
+            }
+          }
+        }
+      } catch (err: any) {
+        if (err.code === 4001) {
+          const msg = "Connection request rejected by user.";
+          setError(msg);
+          toast.error(msg, { toastId: "user-rejected" });
+        } else if (err.code === -32002) {
+          const msg = "Connection request already pending in MetaMask.";
+          setError(msg);
+          toast.error(msg, { toastId: "request-pending" });
+        } else {
+          console.error("MetaMask connection error:", err);
+          const msg = "Failed to connect to MetaMask.";
+          setError(msg);
+          toast.error(msg, { toastId: "connection-failed" });
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    checkIfWalletIsConnected();
-  }, [provider]);
-
-  // ✅ Switch to Polygon Amoy Network
-  const connectToPolygon = useCallback(async () => {
-    if (!window.ethereum) {
-      const msg = "MetaMask is not installed!";
-      setError(msg);
-      toast.error(msg);
-      return;
-    }
-
-    const currentProvider = new ethers.BrowserProvider(window.ethereum);
-    const { chainId } = await currentProvider.getNetwork();
-
-    if (chainId !== BigInt(80002)) {
-      try {
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0x13882" }],
-        });
-        toast.success("Switched to Polygon Amoy network!");
-      } catch (switchError: any) {
-        if (switchError.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: "wallet_addEthereumChain",
-              params: [
-                {
-                  chainId: "0x13882",
-                  chainName: "Polygon Amoy Testnet",
-                  nativeCurrency: {
-                    name: "MATIC",
-                    symbol: "MATIC",
-                    decimals: 18,
-                  },
-                  rpcUrls: ["https://rpc-amoy.polygon.technology"],
-                  blockExplorerUrls: ["https://amoy.polygonscan.com"],
-                },
-              ],
-            });
-            toast.success("Polygon Amoy network added!");
-          } catch (addError) {
-            const msg = "Failed to add Polygon Amoy network.";
-            setError(msg);
-            toast.error(msg);
-          }
-        } else {
-          const msg = "Please switch to the Polygon Amoy network.";
-          setError(msg);
-          toast.error(msg);
-        }
-      }
-    }
+    initialize();
   }, []);
-
-  // ✅ Manual wallet connection
-  const connectWallet = useCallback(
-    async (
-      onError?: (message: string, redirectToMetaMask?: boolean) => void
-    ) => {
-      if (!provider) {
-        const msg = "MetaMask is not installed.";
-        setError(msg);
-        onError?.(msg, true);
-        return;
-      }
-
-      try {
-        const accounts: string[] = await provider.send("eth_requestAccounts", []);
-        setAccount(accounts[0]);
-        await connectToPolygon();
-      } catch (err: any) {
-        if (err.code === 4001) {
-          setError("Connection request rejected by user.");
-          onError?.("Connection request rejected by user.");
-        } else if (err.code === -32002) {
-          setError("Connection request already pending in MetaMask.");
-          onError?.("Connection request already pending in MetaMask.");
-        } else {
-          console.error("MetaMask connection error:", err);
-          setError("Failed to connect to MetaMask.");
-          onError?.("Failed to connect to MetaMask.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    },
-    [provider, connectToPolygon]
-  );
 
   return {
     account,
-    connectWallet,
+    provider,
     error,
     loading,
   };

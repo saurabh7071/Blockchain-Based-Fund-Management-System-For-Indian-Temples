@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Sidebar from "@/app/components/Sidebar1";
-import Navbar from "../components/Navbar1";
+import Navbar from "@/app/components/Navbar1";
 import Loading from "@/app/components/Loading"; // adjust if needed
 import { useMetamask } from "@/app/hooks/useMetamask";
 import AuthWrapper from "@/app/components/AuthWrapper";
@@ -17,9 +17,7 @@ export default function SuperAdminLayout({
 
   useEffect(() => {
     if (!loading && account) {
-      // Optional: small delay to avoid flashing
-      const timer = setTimeout(() => setShowContent(true), 1000);
-      return () => clearTimeout(timer);
+      setShowContent(true);
     }
   }, [loading]);
 

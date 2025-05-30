@@ -10,10 +10,23 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import {
+  getTempleRegistryContract,
+  SUPER_ADMIN,
+} from "@/app/utils/TempleRegistry";
+import { useMetamask } from "@/app/hooks/useMetamask";
+import { ethers } from "ethers";
+import { toast } from "react-toastify";
 
 export default function ConfirmPage() {
-  const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState(null);
-  const [expandedNetworkCard, setExpandedNetworkCard] = useState(null);
+  const { account, provider, error, loading } = useMetamask();
+  const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState<
+    number | null
+  >(null);
+  const [expandedNetworkCard, setExpandedNetworkCard] = useState<number | null>(
+    null
+  );
+
   const pendingMetaMaskConnections = [
     {
       id: 1,
@@ -51,17 +64,16 @@ export default function ConfirmPage() {
   const pendingNetworkConnections = [
     {
       id: 1,
-      templeName: "Divine Temple of Prosperity",
-      walletId: "0x742d35Cc6637C0532c2c0b6C7C7d7f6",
-      networkType: "Ethereum Mainnet",
+      templeName: "baba ram rahim",
+      walletId: "0x2973ccafb0a9b0439a80d082d9c5acf254033df7",
       requestDate: "2024-01-15",
       gasEstimate: "0.023 ETH",
       status: "Pending Verification",
     },
     {
       id: 2,
-      templeName: "Sacred Heart Sanctuary",
-      walletId: "0x8ba1f109551bD432803012645Hac136c",
+      templeName: "gaurav rai",
+      walletId: "0x1e846de5881612fb4bdc9dea0be0c5d79e6b9b37",
       networkType: "Polygon",
       requestDate: "2024-01-14",
       gasEstimate: "0.001 MATIC",
@@ -70,7 +82,7 @@ export default function ConfirmPage() {
     {
       id: 3,
       templeName: "Golden Lotus Temple",
-      walletId: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      walletId: "0x75bf063b574656c6c645615497a104482960e9ae",
       networkType: "BSC",
       requestDate: "2024-01-13",
       gasEstimate: "0.002 BNB",
@@ -78,17 +90,84 @@ export default function ConfirmPage() {
     },
   ];
 
-  const handleNotify = (templeId) => {
+  const handleNotify = (templeId: number) => {
     alert(`Notification sent to temple ID: ${templeId}`);
   };
 
-  const handleConfirm = (connectionId) => {
-    alert(`Network connection confirmed for ID: ${connectionId}`);
+  const handleConfirm = async (connectionId: number) => {
+    const connection = pendingNetworkConnections.find(
+      (c) => c.id === connectionId
+    );
+    if (!connection || !provider) return;
+
+    try {
+      const signer = await provider.getSigner();
+      const signerAddress = await signer.getAddress();
+
+      if (signerAddress !== SUPER_ADMIN) {
+        toast.error("Only SuperAdmin can confirm temple authorities.");
+        return;
+      }
+
+      const contract = getTempleRegistryContract(signer);
+
+      // 🔍 CallStatic to simulate the transaction
+      await contract.callStatic.registerTemple(connection.walletId);
+
+      // 🔍 Estimate gas
+      const gasEstimate = await contract.estimateGas.registerTemple(
+        connection.walletId
+      );
+
+      // ✅ Send transaction with estimated gas
+      const tx = await contract.registerTemple(connection.walletId, {
+        gasLimit: gasEstimate.mul(2), // Optional: buffer for safety
+      });
+
+      await tx.wait();
+      toast.success(
+        `Temple "${connection.templeName}" registered successfully!`
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to confirm temple authority.");
+    }
   };
 
-  const handleRemove = (connectionId) => {
-    alert(`Network connection removed for ID: ${connectionId}`);
+  const handleRemove = async (connectionId: number) => {
+    const connection = pendingNetworkConnections.find(
+      (c) => c.id === connectionId
+    );
+    if (!connection || !provider) return;
+
+    try {
+      const signer = await provider.getSigner();
+      const signerAddress = await signer.getAddress();
+
+      if (signerAddress !== SUPER_ADMIN) {
+        toast.error("Only SuperAdmin can remove temple authorities.");
+        return;
+      }
+
+      const contract = getTempleRegistryContract(signer);
+      await contract.callStatic.removeTemple(connection.walletId);
+      const gasEstimate = await contract.estimateGas.removeTemple(
+        connection.walletId
+      );
+      const tx = await contract.removeTemple(connection.walletId, {
+        gasLimit: gasEstimate.mul(2),
+      });
+      await tx.wait();
+
+      await tx.wait();
+
+      toast.success(`Temple "${connection.templeName}" removed successfully!`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to remove temple authority.");
+    }
   };
+
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold text-gray-800">Confirmation Panel</h2>

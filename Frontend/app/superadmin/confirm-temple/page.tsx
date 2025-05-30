@@ -2,6 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import {
+  getTempleRegistryContract,
+  SUPER_ADMIN,
+} from "@/app/utils/TempleRegistry";
+import { useMetamask } from "@/app/hooks/useMetamask";
+import { ethers } from "ethers";
+import { toast } from "react-toastify";
+import {
   Bell,
   Check,
   X,
@@ -11,11 +18,12 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "react-toastify";
+  
 
 export default function ConfirmPage() {
-  const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState(null);
-  const [expandedNetworkCard, setExpandedNetworkCard] = useState(null);
+  const { account, provider, error, loading } = useMetamask();
   const [pendingConfirmations, setPendingConfirmations] = useState([]);
+  const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState<number | null>(null);
 
   const pendingMetaMaskConnections = [
     {
@@ -54,17 +62,16 @@ export default function ConfirmPage() {
   const pendingNetworkConnections = [
     {
       id: 1,
-      templeName: "Divine Temple of Prosperity",
-      walletId: "0x742d35Cc6637C0532c2c0b6C7C7d7f6",
-      networkType: "Ethereum Mainnet",
+      templeName: "baba ram rahim",
+      walletId: "0x2973ccafb0a9b0439a80d082d9c5acf254033df7",
       requestDate: "2024-01-15",
       gasEstimate: "0.023 ETH",
       status: "Pending Verification",
     },
     {
       id: 2,
-      templeName: "Sacred Heart Sanctuary",
-      walletId: "0x8ba1f109551bD432803012645Hac136c",
+      templeName: "gaurav rai",
+      walletId: "0x1e846de5881612fb4bdc9dea0be0c5d79e6b9b37",
       networkType: "Polygon",
       requestDate: "2024-01-14",
       gasEstimate: "0.001 MATIC",
@@ -73,7 +80,7 @@ export default function ConfirmPage() {
     {
       id: 3,
       templeName: "Golden Lotus Temple",
-      walletId: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      walletId: "0x75bf063b574656c6c645615497a104482960e9ae",
       networkType: "BSC",
       requestDate: "2024-01-13",
       gasEstimate: "0.002 BNB",
@@ -173,7 +180,11 @@ export default function ConfirmPage() {
   const handleRemove = (connectionId) => {
     console.log(`Removing network connection with ID: ${connectionId}`);
     alert(`Network connection removed for ID: ${connectionId}`);
+  const handleNotify = (templeId: number) => {
+    alert(`Notification sent to temple ID: ${templeId}`);
   };
+
+  
 
   return (
     <div className="space-y-6">

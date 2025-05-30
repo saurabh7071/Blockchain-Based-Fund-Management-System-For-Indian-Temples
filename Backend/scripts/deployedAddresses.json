@@ -1,10 +1,10 @@
 {
   "TempleRegistry": {
-    "contractAddress": "0x32172b53D9A78485BD2e245C662ca532edBDd897",
+    "contractAddress": "0x5EE178dAB6Aa2e90a847C117f0F925d4aC45E4E2",
     "deployedBy": "0x2973CCafB0A9b0439a80d082d9c5ACf254033dF7"
   },
   "TempleFund": {
-    "contractAddress": "0xa093EC765F5800f92eaFF21c3EE184077556058E",
+    "contractAddress": "0x18B9eb123D4B7Ab977C9E8f6417999e7A1F6C050",
     "deployedBy": "0x2973CCafB0A9b0439a80d082d9c5ACf254033dF7"
   }
 }

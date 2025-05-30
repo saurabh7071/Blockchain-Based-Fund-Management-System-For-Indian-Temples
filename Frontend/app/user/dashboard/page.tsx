@@ -1,13 +1,13 @@
 "use client";
 import React, { useState } from 'react';
-import { 
-  Home, 
-  Heart, 
-  History, 
-  TrendingUp, 
-  Settings, 
-  Bell, 
-  Search, 
+import {
+  Home,
+  Heart,
+  History,
+  TrendingUp,
+  Settings,
+  Bell,
+  Search,
   Filter,
   Plus,
   Eye,
@@ -22,6 +22,7 @@ import {
   Clock,
   CheckCircle
 } from 'lucide-react';
+import AuthWrapper from '@/app/components/AuthWrapper';
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -115,11 +116,10 @@ const UserDashboard = () => {
   const MenuItem = ({ icon: Icon, label, id, active, onClick }) => (
     <button
       onClick={() => onClick(id)}
-      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
-        active 
-          ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg' 
-          : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
-      }`}
+      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${active
+        ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
+        : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
+        }`}
     >
       <Icon size={20} />
       <span className="font-medium">{label}</span>
@@ -153,29 +153,29 @@ const UserDashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          icon={IndianRupee} 
-          title="Total Donated" 
+        <StatCard
+          icon={IndianRupee}
+          title="Total Donated"
           value={`₹${donationStats.totalDonated.toLocaleString()}`}
           change={12}
         />
-        <StatCard 
-          icon={Home} 
-          title="Temples Supported" 
+        <StatCard
+          icon={Home}
+          title="Temples Supported"
           value={donationStats.templeCount}
           change={5}
           color="red"
         />
-        <StatCard 
-          icon={TrendingUp} 
-          title="This Month" 
+        <StatCard
+          icon={TrendingUp}
+          title="This Month"
           value={`₹${donationStats.monthlyDonation.toLocaleString()}`}
           change={8}
           color="pink"
         />
-        <StatCard 
-          icon={Award} 
-          title="Impact Score" 
+        <StatCard
+          icon={Award}
+          title="Impact Score"
           value={`${donationStats.impactScore}/100`}
           change={3}
           color="yellow"
@@ -224,11 +224,10 @@ const UserDashboard = () => {
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-gray-800">₹{donation.amount.toLocaleString()}</p>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    donation.status === 'completed' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${donation.status === 'completed'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-yellow-100 text-yellow-800'
+                    }`}>
                     {donation.status === 'completed' ? <CheckCircle size={12} className="mr-1" /> : <Clock size={12} className="mr-1" />}
                     {donation.status}
                   </span>
@@ -250,11 +249,10 @@ const UserDashboard = () => {
                   <h3 className="font-semibold text-gray-800">{report.project}</h3>
                   <p className="text-sm text-gray-600">{report.temple}</p>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  report.status === 'completed' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-blue-100 text-blue-800'
-                }`}>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${report.status === 'completed'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-blue-100 text-blue-800'
+                  }`}>
                   {report.status}
                 </span>
               </div>
@@ -264,7 +262,7 @@ const UserDashboard = () => {
                   <span className="font-medium">{report.funded}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full"
                     style={{ width: `${report.funded}%` }}
                   ></div>
@@ -288,13 +286,13 @@ const UserDashboard = () => {
         <div className="flex space-x-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input 
-              type="text" 
-              placeholder="Search donations..." 
+            <input
+              type="text"
+              placeholder="Search donations..."
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
-          <select 
+          <select
             value={selectedFilter}
             onChange={(e) => setSelectedFilter(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -330,11 +328,10 @@ const UserDashboard = () => {
                 <div className="text-right">
                   <p className="text-xl font-bold text-gray-800">₹{donation.amount.toLocaleString()}</p>
                   <p className="text-sm text-gray-600">{donation.date}</p>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-2 ${
-                    donation.status === 'completed' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-2 ${donation.status === 'completed'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-yellow-100 text-yellow-800'
+                    }`}>
                     {donation.status === 'completed' ? <CheckCircle size={12} className="mr-1" /> : <Clock size={12} className="mr-1" />}
                     {donation.status}
                   </span>
@@ -363,7 +360,7 @@ const UserDashboard = () => {
   const renderAnalytics = () => (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-800">Analytics & Impact</h1>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-lg">
           <h2 className="text-lg font-semibold mb-4 text-gray-800">Donation Trends</h2>
@@ -371,7 +368,7 @@ const UserDashboard = () => {
             <p className="text-gray-500">Chart visualization would go here</p>
           </div>
         </div>
-        
+
         <div className="bg-white p-6 rounded-2xl shadow-lg">
           <h2 className="text-lg font-semibold mb-4 text-gray-800">Temple Distribution</h2>
           <div className="h-64 bg-gradient-to-br from-red-50 to-pink-50 rounded-lg flex items-center justify-center">
@@ -401,101 +398,103 @@ const UserDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white shadow-lg min-h-screen">
-          <div className="p-6">
-            <div className="flex items-center space-x-2 mb-8">
-              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">🕉</span>
+    <AuthWrapper role="user">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+        <div className="flex">
+          {/* Sidebar */}
+          <div className="w-64 bg-white shadow-lg min-h-screen">
+            <div className="p-6">
+              <div className="flex items-center space-x-2 mb-8">
+                <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">🕉</span>
+                </div>
+                <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                  TempleChain
+                </span>
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                TempleChain
-              </span>
+
+              <nav className="space-y-2">
+                <MenuItem
+                  icon={Home}
+                  label="Dashboard"
+                  id="dashboard"
+                  active={activeTab === 'dashboard'}
+                  onClick={setActiveTab}
+                />
+                <MenuItem
+                  icon={Heart}
+                  label="My Donations"
+                  id="donations"
+                  active={activeTab === 'donations'}
+                  onClick={setActiveTab}
+                />
+                <MenuItem
+                  icon={TrendingUp}
+                  label="Analytics"
+                  id="analytics"
+                  active={activeTab === 'analytics'}
+                  onClick={setActiveTab}
+                />
+                <MenuItem
+                  icon={History}
+                  label="History"
+                  id="history"
+                  active={activeTab === 'history'}
+                  onClick={setActiveTab}
+                />
+                <MenuItem
+                  icon={Settings}
+                  label="Settings"
+                  id="settings"
+                  active={activeTab === 'settings'}
+                  onClick={setActiveTab}
+                />
+              </nav>
             </div>
-            
-            <nav className="space-y-2">
-              <MenuItem 
-                icon={Home} 
-                label="Dashboard" 
-                id="dashboard"
-                active={activeTab === 'dashboard'}
-                onClick={setActiveTab}
-              />
-              <MenuItem 
-                icon={Heart} 
-                label="My Donations" 
-                id="donations"
-                active={activeTab === 'donations'}
-                onClick={setActiveTab}
-              />
-              <MenuItem 
-                icon={TrendingUp} 
-                label="Analytics" 
-                id="analytics"
-                active={activeTab === 'analytics'}
-                onClick={setActiveTab}
-              />
-              <MenuItem 
-                icon={History} 
-                label="History" 
-                id="history"
-                active={activeTab === 'history'}
-                onClick={setActiveTab}
-              />
-              <MenuItem 
-                icon={Settings} 
-                label="Settings" 
-                id="settings"
-                active={activeTab === 'settings'}
-                onClick={setActiveTab}
-              />
-            </nav>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1">
+            {/* Header */}
+            <header className="bg-white shadow-sm border-b border-gray-200">
+              <div className="px-6 py-4 flex justify-between items-center">
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-800">
+                    {activeTab === 'dashboard' && 'Dashboard'}
+                    {activeTab === 'donations' && 'My Donations'}
+                    {activeTab === 'analytics' && 'Analytics'}
+                    {activeTab === 'history' && 'History'}
+                    {activeTab === 'settings' && 'Settings'}
+                  </h1>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <button className="relative p-2 text-gray-600 hover:text-gray-800">
+                    <Bell size={20} />
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+                  </button>
+                  <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full"></div>
+                </div>
+              </div>
+            </header>
+
+            {/* Content */}
+            <main className="p-6">
+              {activeTab === 'dashboard' && renderDashboard()}
+              {activeTab === 'donations' && renderDonations()}
+              {activeTab === 'analytics' && renderAnalytics()}
+              {(activeTab === 'history' || activeTab === 'settings') && (
+                <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
+                  <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                    {activeTab === 'history' ? 'Transaction History' : 'Settings'}
+                  </h2>
+                  <p className="text-gray-600">This section is under development.</p>
+                </div>
+              )}
+            </main>
           </div>
         </div>
-
-        {/* Main Content */}
-        <div className="flex-1">
-          {/* Header */}
-          <header className="bg-white shadow-sm border-b border-gray-200">
-            <div className="px-6 py-4 flex justify-between items-center">
-              <div>
-                <h1 className="text-xl font-semibold text-gray-800">
-                  {activeTab === 'dashboard' && 'Dashboard'}
-                  {activeTab === 'donations' && 'My Donations'}
-                  {activeTab === 'analytics' && 'Analytics'}
-                  {activeTab === 'history' && 'History'}
-                  {activeTab === 'settings' && 'Settings'}
-                </h1>
-              </div>
-              <div className="flex items-center space-x-4">
-                <button className="relative p-2 text-gray-600 hover:text-gray-800">
-                  <Bell size={20} />
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-                </button>
-                <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full"></div>
-              </div>
-            </div>
-          </header>
-
-          {/* Content */}
-          <main className="p-6">
-            {activeTab === 'dashboard' && renderDashboard()}
-            {activeTab === 'donations' && renderDonations()}
-            {activeTab === 'analytics' && renderAnalytics()}
-            {(activeTab === 'history' || activeTab === 'settings') && (
-              <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
-                <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                  {activeTab === 'history' ? 'Transaction History' : 'Settings'}
-                </h2>
-                <p className="text-gray-600">This section is under development.</p>
-              </div>
-            )}
-          </main>
-        </div>
       </div>
-    </div>
+    </AuthWrapper>
   );
 };
 

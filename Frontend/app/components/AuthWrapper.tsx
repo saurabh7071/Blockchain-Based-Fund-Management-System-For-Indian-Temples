@@ -3,14 +3,16 @@
 import { useEffect } from "react";
 import { refreshAccessToken } from "@/app/utils/refreshAccessToken";
 
-const AuthWrapper = ({ children, role }: { children: React.ReactNode; role: "superAdmin" | "templeAdmin" }) => {
+const AuthWrapper = ({ children, role }: { children: React.ReactNode; role: "superAdmin" | "templeAdmin" | "user" }) => {
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
                 const endpoint =
                     role === "superAdmin"
                         ? "http://localhost:5050/api/v1/superAdmin/refresh-Access-Token"
-                        : "http://localhost:5050/api/v1/templeAdmin/refresh-token";
+                        : role === "templeAdmin"
+                        ? "http://localhost:5050/api/v1/templeAdmin/refresh-token"
+                        : "http://localhost:5050/api/v1/users/refresh-Token";
                 await refreshAccessToken(endpoint);
             } catch (error) {
                 console.error("Failed to refresh access token:", error);

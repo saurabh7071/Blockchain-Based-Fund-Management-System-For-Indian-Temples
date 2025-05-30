@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   IconAt,
   IconLock,
@@ -16,6 +16,14 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const accessToken = sessionStorage.getItem("accessToken");
+    if (accessToken) {
+      router.push("/templeadmin/dashboard");
+    }
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault(); 

@@ -20,7 +20,9 @@ export const apiClient = async (url: string, options: RequestInit = {}, role: "s
             const refreshEndpoint =
                 role === "superAdmin"
                     ? "http://localhost:5050/api/v1/superAdmin/refresh-Access-Token"
-                    : "http://localhost:5050/api/v1/templeAdmin/refresh-token";
+                    : role === "templeAdmin"
+                    ? "http://localhost:5050/api/v1/templeAdmin/refresh-token"
+                    : "http://localhost:5050/api/v1/users/refresh-Token";
 
             accessToken = await refreshAccessToken(refreshEndpoint);
 

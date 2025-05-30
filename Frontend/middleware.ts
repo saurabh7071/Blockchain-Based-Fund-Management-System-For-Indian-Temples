@@ -8,7 +8,10 @@ export function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname
 
     // Check if the path is public (login page)
-    const isPublicPath = path === "/superadminlogin" || path === "/templelogin" || path === "/login";
+    const isPublicPath =
+        path === "/superadminlogin" ||
+        path === "/templelogin" ||
+        path === "/login";
 
     // Get the token from cookies
     const accessToken = request.cookies.get("accessToken")?.value
@@ -51,13 +54,20 @@ export function middleware(request: NextRequest) {
             return NextResponse.redirect(
                 new URL("/templeadmin/dashboard", request.url)
             );
+        } else if (path === '/login') {
+            return NextResponse.redirect(
+                new URL("/user/dashboard", request.url
+                )
+            );
         }
     }
 
     // If the path is dashboard or any of its subpaths and user is not authenticated,
     // redirect to login
-    if (path.startsWith("/superadmin")  && !isAuthenticated) {
-        const response = NextResponse.redirect(new URL("/superadminlogin", request.url))
+    if (path.startsWith("/superadmin") && !isAuthenticated) {
+        const response = NextResponse.redirect(
+            new URL("/superadminlogin", request.url)
+        )
         // Clear any existing tokens
         response.cookies.delete("accessToken")
         response.cookies.delete("refreshToken")
@@ -74,6 +84,16 @@ export function middleware(request: NextRequest) {
         return response;
     }
 
+    // Restrict access to /user/... routes 
+    if (path.startsWith("/user") && !isAuthenticated) {
+        const response = NextResponse.redirect(
+            new URL("/login", request.url)
+        );
+        response.cookies.delete("accessToken")
+        response.cookies.delete("refreshToken")
+        return response;
+    }
+
     return NextResponse.next()
 }
 
@@ -83,7 +103,6 @@ export const config = {
         "/",
         "/superadmin/:path*",
         "/templeadmin/:path*",
-        // "/superadminlogin",
-        // "/templelogin",
+        "/user/:path*",
     ]
 }

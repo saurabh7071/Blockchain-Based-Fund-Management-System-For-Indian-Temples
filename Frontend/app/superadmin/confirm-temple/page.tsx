@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  getTempleRegistryContract,
+  SUPER_ADMIN,
+} from "@/app/utils/TempleRegistry";
+import { useMetamask } from "@/app/hooks/useMetamask";
+import { ethers } from "ethers";
+import { toast } from "react-toastify";
 import {
   Bell,
   Check,
@@ -10,22 +17,13 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
-import {
-  getTempleRegistryContract,
-  SUPER_ADMIN,
-} from "@/app/utils/TempleRegistry";
-import { useMetamask } from "@/app/hooks/useMetamask";
-import { ethers } from "ethers";
 import { toast } from "react-toastify";
+  
 
 export default function ConfirmPage() {
   const { account, provider, error, loading } = useMetamask();
-  const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState<
-    number | null
-  >(null);
-  const [expandedNetworkCard, setExpandedNetworkCard] = useState<number | null>(
-    null
-  );
+  const [pendingConfirmations, setPendingConfirmations] = useState([]);
+  const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState<number | null>(null);
 
   const pendingMetaMaskConnections = [
     {
@@ -90,83 +88,103 @@ export default function ConfirmPage() {
     },
   ];
 
+  const handleNotify = (templeId) => {
+    console.log(`Notification sent to temple ID: ${templeId}`);
+    alert(`Notification sent to temple ID: ${templeId}`);
+  };
+
+  const fetchPendingConfirmations = async () => {
+    console.log("Fetching pending confirmations...");
+    try {
+      const accessToken = sessionStorage.getItem("accessToken");
+      console.log("Access Token:", accessToken);
+
+      const response = await fetch(
+        "http://localhost:5050/api/v1/superAdmin/get-pending-confirmations",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      console.log("Fetch Response Status:", response.status);
+
+      const result = await response.json();
+      console.log("Fetch Result:", result);
+
+      if (response.ok) {
+        setPendingConfirmations(result.data);
+        console.log("Pending confirmations updated:", result.data);
+      } else {
+        toast.error(result.message || "Failed to fetch pending confirmations.");
+      }
+    } catch (error) {
+      console.error("Error fetching pending confirmations:", error);
+      toast.error("An error occurred while fetching pending confirmations.");
+    }
+  };
+
+  useEffect(() => {
+    console.log("Initializing ConfirmPage...");
+    fetchPendingConfirmations();
+    const interval = setInterval(fetchPendingConfirmations, 5000); // poll every 5 seconds
+    return () => {
+      console.log("Cleaning up ConfirmPage...");
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleConfirm = async (templeAdminId: string) => {
+    console.log(`Confirming temple admin with ID: ${templeAdminId}`);
+    try {
+      const accessToken = sessionStorage.getItem("accessToken");
+      console.log("Access Token:", accessToken);
+
+      const response = await fetch(
+        "http://localhost:5050/api/v1/superAdmin/confirm-temple-admin-registration",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ templeAdminId }),
+        }
+      );
+
+      console.log("Confirm Response Status:", response.status);
+
+      const result = await response.json();
+      console.log("Confirm Result:", result);
+
+      if (!response.ok) {
+        toast.error(
+          result.message || "Failed to confirm registration. Please try again."
+        );
+        return;
+      }
+
+      toast.success(
+        "Temple Admin registration confirmed and deployed on blockchain!"
+      );
+      fetchPendingConfirmations(); // Refresh list of pending confirmations
+    } catch (error) {
+      console.error("Confirmation error:", error);
+      toast.error("An error occurred. Please try again.");
+    }
+  };
+
+  const handleRemove = (connectionId) => {
+    console.log(`Removing network connection with ID: ${connectionId}`);
+    alert(`Network connection removed for ID: ${connectionId}`);
   const handleNotify = (templeId: number) => {
     alert(`Notification sent to temple ID: ${templeId}`);
   };
 
-  const handleConfirm = async (connectionId: number) => {
-    const connection = pendingNetworkConnections.find(
-      (c) => c.id === connectionId
-    );
-    if (!connection || !provider) return;
-
-    try {
-      const signer = await provider.getSigner();
-      const signerAddress = await signer.getAddress();
-
-      if (signerAddress !== SUPER_ADMIN) {
-        toast.error("Only SuperAdmin can confirm temple authorities.");
-        return;
-      }
-
-      const contract = getTempleRegistryContract(signer);
-
-      // 🔍 CallStatic to simulate the transaction
-      await contract.callStatic.registerTemple(connection.walletId);
-
-      // 🔍 Estimate gas
-      const gasEstimate = await contract.estimateGas.registerTemple(
-        connection.walletId
-      );
-
-      // ✅ Send transaction with estimated gas
-      const tx = await contract.registerTemple(connection.walletId, {
-        gasLimit: gasEstimate.mul(2), // Optional: buffer for safety
-      });
-
-      await tx.wait();
-      toast.success(
-        `Temple "${connection.templeName}" registered successfully!`
-      );
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to confirm temple authority.");
-    }
-  };
-
-  const handleRemove = async (connectionId: number) => {
-    const connection = pendingNetworkConnections.find(
-      (c) => c.id === connectionId
-    );
-    if (!connection || !provider) return;
-
-    try {
-      const signer = await provider.getSigner();
-      const signerAddress = await signer.getAddress();
-
-      if (signerAddress !== SUPER_ADMIN) {
-        toast.error("Only SuperAdmin can remove temple authorities.");
-        return;
-      }
-
-      const contract = getTempleRegistryContract(signer);
-      await contract.callStatic.removeTemple(connection.walletId);
-      const gasEstimate = await contract.estimateGas.removeTemple(
-        connection.walletId
-      );
-      const tx = await contract.removeTemple(connection.walletId, {
-        gasLimit: gasEstimate.mul(2),
-      });
-      await tx.wait();
-
-      await tx.wait();
-
-      toast.success(`Temple "${connection.templeName}" removed successfully!`);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to remove temple authority.");
-    }
-  };
+  
 
   return (
     <div className="space-y-6">
@@ -179,68 +197,74 @@ export default function ConfirmPage() {
             Pending MetaMask Connections
           </h3>
           <div className="space-y-4">
-            {pendingMetaMaskConnections.map((temple) => (
-              <div
-                key={temple.id}
-                className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden"
-              >
+            {pendingConfirmations.length > 0 ? (
+              pendingConfirmations.map((temple) => (
                 <div
-                  className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                  onMouseEnter={() => setExpandedMetaMaskCard(temple.id)}
-                  onMouseLeave={() => setExpandedMetaMaskCard(null)}
+                  key={temple._id}
+                  className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden"
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold text-gray-800">
-                        {temple.templeName}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {temple.requestDate}
-                      </p>
-                    </div>
-                    {expandedMetaMaskCard === temple.id ? (
-                      <ChevronDown className="w-5 h-5" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5" />
-                    )}
-                  </div>
-
-                  {expandedMetaMaskCard === temple.id && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 animate-in slide-in-from-top-1">
-                      <div className="space-y-2 text-sm">
-                        <p>
-                          <span className="font-medium">Location:</span>{" "}
-                          {temple.location}
-                        </p>
-                        <p>
-                          <span className="font-medium">Contact:</span>{" "}
-                          {temple.contactPerson}
-                        </p>
-                        <p>
-                          <span className="font-medium">Phone:</span>{" "}
-                          {temple.phone}
-                        </p>
-                        <p>
-                          <span className="font-medium">Email:</span>{" "}
-                          {temple.email}
-                        </p>
-                        <p>
-                          <span className="font-medium">Description:</span>{" "}
-                          {temple.description}
+                  <div
+                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onMouseEnter={() => setExpandedMetaMaskCard(temple._id)}
+                    onMouseLeave={() => setExpandedMetaMaskCard(null)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-gray-800">
+                          {temple.templeName}
+                        </h4>
+                        <p className="text-sm text-gray-600">{temple.templeLocation}</p>
+                        <p className="text-sm text-gray-500">
+                          <span className="font-medium">Request Time:</span>{" "}
+                          {new Date(temple.createdAt).toLocaleString()}
                         </p>
                       </div>
-                      <button
-                        onClick={() => handleNotify(temple.id)}
-                        className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors flex items-center text-sm font-medium"
-                      >
-                        <Bell className="w-4 h-4 mr-2" />
-                        Notify
-                      </button>
+                      {expandedMetaMaskCard === temple._id ? (
+                        <ChevronDown className="w-5 h-5" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5" />
+                      )}
                     </div>
-                  )}
+
+                    {expandedMetaMaskCard === temple._id && (
+                      <div className="mt-4 pt-4 border-t border-gray-200 animate-in slide-in-from-top-1">
+                        <div className="space-y-2 text-sm">
+                          <p>
+                            <span className="font-medium">Location:</span>{" "}
+                            {temple.templeLocation}
+                          </p>
+                          <p>
+                            <span className="font-medium">Contact:</span>{" "}
+                            {temple.name}
+                          </p>
+                          <p>
+                            <span className="font-medium">Phone:</span>{" "}
+                            {temple.phone}
+                          </p>
+                          <p>
+                            <span className="font-medium">Email:</span>{" "}
+                            {temple.email}
+                          </p>
+                          <p>
+                            <span className="font-medium">Wallet Address:</span>{" "}
+                            {temple.walletAddress}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleConfirm(temple._id)}
+                          className="mt-4 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center text-sm font-medium"
+                        >
+                          <Check className="w-4 h-4 mr-2" />
+                          Confirm
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-600">No pending confirmations available.</p>
+            )}
           </div>
         </div>
 

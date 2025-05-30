@@ -28,8 +28,9 @@ import {
   Star,
   Award,
   Clock,
-  CheckCircle,
-} from "lucide-react";
+  CheckCircle
+} from 'lucide-react';
+import AuthWrapper from '@/app/components/AuthWrapper';
 
 const UserDashboard = () => {
   const router = useRouter();
@@ -503,6 +504,7 @@ const UserDashboard = () => {
   );
 
   return (
+    <AuthWrapper role="user">
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
         <div className="flex">
           {/* Sidebar */}
@@ -553,7 +555,7 @@ const UserDashboard = () => {
                   icon={Home}
                   label="Dashboard"
                   id="dashboard"
-                  active={activeTab === "dashboard"}
+                  active={activeTab === 'dashboard'}
                   onClick={setActiveTab}
                 />
                 <MenuItem
@@ -574,6 +576,7 @@ const UserDashboard = () => {
                   icon={History}
                   label="History"
                   id="history"
+
                   active={activeTab === "history"}
                   onClick={setActiveTab}
                 />
@@ -581,6 +584,7 @@ const UserDashboard = () => {
                   icon={Settings}
                   label="Settings"
                   id="settings"
+
                   active={activeTab === "settings"}
                   onClick={setActiveTab}
                 />
@@ -641,7 +645,6 @@ const UserDashboard = () => {
                       )}...${account.slice(-4)}`}</span>
                     </motion.button>
                   )}
-
                   <button className="relative p-2 text-gray-600 hover:text-gray-800">
                     <Bell size={20} />
                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
@@ -718,6 +721,8 @@ const UserDashboard = () => {
           </div>
         </div>
       </div>
+
+    </AuthWrapper>
   );
 };
 

@@ -192,15 +192,18 @@ const resendOtp = asyncHandler(async (req, res) => {
         throw new ApiError(400, "User is already verified");
     }
 
-    const result = await resendOtpUtility(user, "Resend OTP Verification");
-
-    return res.status(200).json(
-        new ApiResponse(
-            200,
-            {},
-            result.message || "OTP resent successfully. Please check your email."
-        )
-    );
+    try {
+        const result = await resendOtpUtility(user, "Resend OTP Verification");
+        return res.status(200).json(
+            new ApiResponse(200, {}, result.message)
+        );
+    } catch (error) {
+        console.error("Resend OTP error: ", error);
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || "An error occured while resending OTP"
+        })
+    }
 });
 
 // User Login

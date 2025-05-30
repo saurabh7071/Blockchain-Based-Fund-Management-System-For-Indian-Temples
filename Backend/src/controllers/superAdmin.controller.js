@@ -36,10 +36,10 @@ const seedScriptForSuperAdmin = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Missing required environment variables for SuperAdmin creation.");
     }
 
-     // Check if a super admin already exists
+    // Check if a super admin already exists
     const existingSuperAdmin = await User.findOne({ role: "superAdmin" });
 
-     // If SuperAdmin exists and no token, then block
+    // If SuperAdmin exists and no token, then block
     if (existingSuperAdmin && !req.user) {
         return res
             .status(403)
@@ -79,8 +79,8 @@ const seedScriptForSuperAdmin = asyncHandler(async (req, res) => {
         .status(201)
         .json(
             new ApiResponse(
-                201, 
-                { email: superAdmin.email, role: superAdmin.role, phone: superAdmin.phone, wallet_id: superAdmin.walletAddress }, 
+                201,
+                { email: superAdmin.email, role: superAdmin.role, phone: superAdmin.phone, wallet_id: superAdmin.walletAddress },
                 "SuperAdmin created successfully."
             )
         );
@@ -225,7 +225,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 })
 
-
 // change password 
 const changePassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body
@@ -284,7 +283,7 @@ const confirmTempleAdminRegistration = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Temple Admin is already active");
     }
 
-     // Check if wallet address is stored
+    // Check if wallet address is stored
     if (!templeAdmin.walletAddress) {
         throw new ApiError(400, "Temple Admin has not connected their wallet address");
     }
@@ -303,12 +302,17 @@ const confirmTempleAdminRegistration = asyncHandler(async (req, res) => {
                 phone: templeAdmin.phone,
                 walletAddress: templeAdmin.walletAddress,
                 templeName: templeAdmin.templeName,
-                templeLocation: templeAdmin.templeLocation, 
-                status: templeAdmin.status 
+                templeLocation: templeAdmin.templeLocation,
+                status: templeAdmin.status
             },
             "Temple Admin registration confirmed and deployed on blockchain"
         )
     );
+});
+
+const getPendingConfirmations = asyncHandler(async (req, res) => {
+    const pendingAdmins = await User.find({ role: "templeAdmin", status: "pending" }).select("-password -refreshToken");
+    res.status(200).json(new ApiResponse(200, pendingAdmins, "Pending confirmations fetched successfully."));
 });
 
 export {
@@ -318,6 +322,7 @@ export {
     refreshAccessToken,
     changePassword,
     getCurrentSuperAdmin,
-    confirmTempleAdminRegistration
+    confirmTempleAdminRegistration,
+    getPendingConfirmations
 };
 

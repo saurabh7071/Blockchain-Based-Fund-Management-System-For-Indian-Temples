@@ -1,10 +1,10 @@
 "use client";
-
-import React, { useState, useEffect } from 'react';
-import { Wallet, CheckCircle2, ArrowRight } from 'lucide-react';
-import { toast } from 'react-toastify';
-import { useRouter } from 'next/navigation';
-import { useMetamask } from '@/app/hooks/useMetamask';
+import { CheckCircle2, Wallet, ArrowRight } from "lucide-react";  
+import { useMetamask } from "@/app/hooks/useMetamask";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import AuthWrapper from "@/app/components/AuthWrapper";
 
 export default function ConfirmWalletPage() {
   const { account, loading, error } = useMetamask();
@@ -12,25 +12,30 @@ export default function ConfirmWalletPage() {
   const [connectedWallet, setConnectedWallet] = useState<{ name: string; address: string } | null>(null);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const handleConnectWallet = async () => {
+    console.log("Starting wallet connection...");
+    setIsLoading(true);
 
-  const handleWalletConnect = async () => {
-    setIsConnecting(true);
     try {
-      // Simulate delay for smoother UX
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Check if Metamask is installed
+      if (typeof window.ethereum === "undefined") {
+        console.error("Metamask is not installed");
+        throw new Error("Metamask is not installed");
+      }
 
-      if (!account) throw new Error("No wallet address found");
+      console.log("Requesting Metamask accounts...");
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const walletAddress = accounts[0];
+      console.log("Connected wallet address:", walletAddress);
 
-      setConnectedWallet({
-        name: 'MetaMask',
-        address: account,
-      });
-
+      // Get access token from session storage
       const accessToken = sessionStorage.getItem("accessToken");
+      console.log("Access Token:", accessToken);
+
+      // Store wallet address in the backend
+      console.log("Sending wallet address to backend...");
       const response = await fetch("http://localhost:5050/api/v1/templeAdmin/store-wallet-address", {
         method: "POST",
         headers: {
@@ -40,19 +45,54 @@ export default function ConfirmWalletPage() {
         body: JSON.stringify({ walletAddress: account }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to store wallet address");
-      }
+      console.log("Store wallet address response status:", response.status);
+      const result = await response.json();
+      console.log("Store wallet address result:", result);
+
+      if (result.success) {
+        toast.success("Wallet connected successfully!");
+        console.log("Wallet successfully stored in the backend.");
+
+        // Notify Super Admin about the pending confirmation
+        console.log("Notifying Super Admin about pending confirmation...");
+        const notifyResponse = await fetch("http://localhost:5050/api/v1/superAdmin/confirm-temple-admin-registration", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ templeAdminId: result.data.templeAdminId }),
+        });
+
+        console.log("Notify Super Admin response status:", notifyResponse.status);
+        const notifyResult = await notifyResponse.json();
+        console.log("Notify Super Admin result:", notifyResult);
+
+        if (!notifyResponse.ok) {
+          console.error("Failed to notify Super Admin:", notifyResult.message);
+          toast.error(notifyResult.message || "Failed to notify SuperAdmin. Please try again.");
+          setIsLoading(false);
+          return;
+        }
 
       toast.success("Wallet connected successfully!");
       router.push("/templeadmin/dashboard");
 
+        toast.success("Super Admin notified for confirmation!");
+        console.log("Super Admin successfully notified.");
+        router.push("/templeadmin/dashboard");
+      } else {
+        console.error("Failed to store wallet address:", result.message);
+        toast.error(result.message || "Failed to connect wallet. Please try again.");
+      }
     } catch (error: any) {
       console.error("Error connecting wallet:", error.message);
       toast.error(`Error: ${error.message}`);
     } finally {
       setIsConnecting(false);
+    } finally {
+      console.log("Wallet connection process completed.");
+      setIsLoading(false);
     }
   };
 
@@ -61,6 +101,7 @@ export default function ConfirmWalletPage() {
     handleWalletConnect();
   }
 }, [account]);
+
 
   useEffect(() => {
     if (account) {
@@ -108,6 +149,9 @@ export default function ConfirmWalletPage() {
       </div>
     );
   }
+    console.log("Running useEffect to handle wallet connection...");
+    handleConnectWallet();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">

@@ -24,7 +24,7 @@ export default function TempleFundSignup() {
       router.push("/user/dashboard");
     }
   }, [router]);
-  
+
   const {
     account,
     error,
@@ -97,20 +97,20 @@ export default function TempleFundSignup() {
   };
 
   const handleOtpPaste = (e: ClipboardEvent) => {
-  e.preventDefault();
-  const pastedData = e.clipboardData.getData("text").trim();
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").trim();
 
-  if (pastedData.length === 6) { // Ensure the pasted data is exactly 6 digits
-    const newOtp = pastedData.split("");
-    setOtp(newOtp);
+    if (pastedData.length === 6) { // Ensure the pasted data is exactly 6 digits
+      const newOtp = pastedData.split("");
+      setOtp(newOtp);
 
-    // Auto-focus the last input field
-    const lastInput = document.getElementById(`otp-${newOtp.length - 1}`);
-    if (lastInput) lastInput.focus();
-  } else {
-    toast.error("Please paste a valid 6-digit OTP.");
-  }
-};
+      // Auto-focus the last input field
+      const lastInput = document.getElementById(`otp-${newOtp.length - 1}`);
+      if (lastInput) lastInput.focus();
+    } else {
+      toast.error("Please paste a valid 6-digit OTP.");
+    }
+  };
 
   // Handle OTP backspace
   const handleOtpKeyDown = (index: number, e: KeyboardEvent) => {
@@ -242,7 +242,7 @@ export default function TempleFundSignup() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${accessToken}`, // Include access token for authentication
         },
-        body: JSON.stringify({ walletAddress : account}),
+        body: JSON.stringify({ walletAddress: account }),
       });
 
       const result = await response.json();
@@ -260,6 +260,42 @@ export default function TempleFundSignup() {
     } catch (error) {
       console.error("Metamask connection error:", error);
       toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!email) {
+      toast.error("please provide a valid email address.")
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:5050/api/v1/users/resend-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+      console.log("Resend OTP result:", result);
+
+      if (!response.ok) {
+        toast.error(result.message || "Failed to resend OTP. Please try again.");
+        return;
+      }
+
+      if (result.success) {
+        toast.success("OTP resent successfully! Please check your email.");
+      }
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+      toast.error("An error occurred while resending OTP. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -475,7 +511,9 @@ export default function TempleFundSignup() {
 
               <p className="text-sm text-gray-500">
                 Didn't receive the code?
-                <button className="text-orange-500 hover:text-orange-600 ml-1 font-medium">
+                <button
+                  onClick={handleResendOtp}
+                  className="text-orange-500 hover:text-orange-600 ml-1 font-medium">
                   Resend OTP
                 </button>
               </p>

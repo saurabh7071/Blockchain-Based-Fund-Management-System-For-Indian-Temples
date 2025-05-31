@@ -3,8 +3,6 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "@/app/components/Sidebar1";
 import Navbar from "@/app/components/Navbar1";
-import Loading from "@/app/components/Loading"; // adjust if needed
-import { useMetamask } from "@/app/hooks/useMetamask";
 import AuthWrapper from "@/app/components/AuthWrapper";
 
 export default function SuperAdminLayout({
@@ -12,17 +10,6 @@ export default function SuperAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { loading, account } = useMetamask();
-  const [showContent, setShowContent] = useState(false);
-
-  useEffect(() => {
-    if (!loading && account) {
-      setShowContent(true);
-    }
-  }, [loading]);
-
-  if (!showContent) return <Loading />;
-
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       <AuthWrapper role="superAdmin">

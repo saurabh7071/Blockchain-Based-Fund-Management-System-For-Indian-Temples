@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useMetamask } from "../hooks/useMetamask";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import LogoutButton from "./LogoutButton";
 import { LogOut, Wallet, ChevronDown, UserCircle, Settings } from "lucide-react";
 
@@ -57,13 +58,14 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    const user = localStorage.getItem("user_data");
-    if (!user) {
-      router.push("/templelogin");
-    } else {
-      setUserData(JSON.parse(user));
-    }
-  }, [router]);
+  const user = localStorage.getItem("user_data");
+  if (!user && router.pathname !== "/superadminlogin") {
+    router.push("/superadminlogin");
+  } else if (user) {
+    setUserData(JSON.parse(user));
+  }
+}, [router]);
+
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -115,7 +117,7 @@ export default function Navbar() {
           {/* Right side - Wallet + Dropdown */}
           <div className="flex items-center space-x-4">
             <AnimatePresence>
-              {!account && (
+              {!account && showConnectedButton && (
                 <motion.button
                   key="connectwalletbutton"
                   onClick={connectWallet}

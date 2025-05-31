@@ -156,7 +156,7 @@ const UserDashboard = () => {
   const MenuItem = ({ icon: Icon, label, id, active, onClick }) => (
     <button
       onClick={() => onClick(id)}
-      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
+      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all cursor-pointer ${
         active
           ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg"
           : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
@@ -236,25 +236,25 @@ const UserDashboard = () => {
       <div className="bg-white p-6 rounded-2xl shadow-lg">
         <h2 className="text-xl font-bold mb-4 text-gray-800">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="flex flex-col items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-all">
+          <button className="flex flex-col items-center cursor-pointer p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-all">
             <Plus className="text-orange-600 mb-2" size={24} />
             <span className="text-sm font-medium text-gray-700">
               New Donation
             </span>
           </button>
-          <button className="flex flex-col items-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-all">
+          <button className="flex flex-col items-center cursor-pointer p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-all">
             <Eye className="text-red-600 mb-2" size={24} />
             <span className="text-sm font-medium text-gray-700">
               Track Funds
             </span>
           </button>
-          <button className="flex flex-col items-center p-4 bg-pink-50 rounded-lg hover:bg-pink-100 transition-all">
+          <button className="flex flex-col items-center cursor-pointer p-4 bg-pink-50 rounded-lg hover:bg-pink-100 transition-all">
             <Download className="text-pink-600 mb-2" size={24} />
             <span className="text-sm font-medium text-gray-700">
               Tax Receipt
             </span>
           </button>
-          <button className="flex flex-col items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-all">
+          <button className="flex flex-col items-center cursor-pointer p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-all">
             <Share2 className="text-yellow-600 mb-2" size={24} />
             <span className="text-sm font-medium text-gray-700">
               Share Impact
@@ -510,7 +510,7 @@ const UserDashboard = () => {
           {/* Sidebar */}
           <div className="w-64 bg-white shadow-lg min-h-screen">
             <div className="p-6 pt-2">
-              <div className="flex items-center space-x-2 mb-8">
+              <div className="flex items-center space-x-2 mb-8 cursor-pointer" onClick={() => router.push("/")}>
                 {/*Logo*/}
 
                 <div className="relative w-12 h-12">
@@ -546,7 +546,7 @@ const UserDashboard = () => {
 
                 {/*Logo End*/}
                 <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                  TempleChain
+                  Digital Seva
                 </span>
               </div>
 
@@ -684,7 +684,7 @@ const UserDashboard = () => {
                           </button>
                           <LogoutButton
                             logoutUrl="http://localhost:5050/api/v1/users/logout"
-                            redirectTo="/login"
+                            redirectTo="/"
                             onLogoutClick={() => setShowUserDropdown(false)} // close dropdown immediately on click
                           >
                             <div className="w-full flex items-center space-x-3 px-3 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">

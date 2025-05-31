@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import styles from './styles/TempleLoader.module.css'; // Adjust the path as necessary
+import styles from "@/app/components/styles/TempleLoader.module.css";
 
 const TempleLoader = ({ onLoadingComplete }) => {
   const [loadingText, setLoadingText] = useState('Connecting to Sacred Blockchain...');

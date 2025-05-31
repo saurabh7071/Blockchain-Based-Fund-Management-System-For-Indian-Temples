@@ -22,6 +22,7 @@ import templeAdminRouter from "./routes/templeAdmin.route.js"
 import templeDetailsRouter from "./routes/templeDetails.route.js"
 import templeReviewRouter from "./routes/reviews.route.js"
 import templeCarouselRouter from "./routes/carousel.route.js"
+import { errorHandler } from "./utils/errorHandler.js"
 
 // route declaration 
 app.use("/api/v1/users", userRouter);
@@ -30,6 +31,7 @@ app.use("/api/v1/templeAdmin", templeAdminRouter);
 app.use("/api/v1/templeDetails", templeDetailsRouter);
 app.use("/api/v1/reviews", templeReviewRouter);
 app.use("/api/v1/carousel", templeCarouselRouter);
+app.use(errorHandler);
 
 // http://localhost:5000/api/v1/users/register
 // http://localhost:5000/api/v1/users/login

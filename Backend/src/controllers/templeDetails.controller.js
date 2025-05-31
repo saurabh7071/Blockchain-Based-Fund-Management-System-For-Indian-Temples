@@ -1,6 +1,6 @@
 import { Temple } from "../models/templeDetails.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiError } from "../utils/apiError.js";
+import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import slugify from "slugify";
@@ -84,7 +84,7 @@ const createTemple = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please Upload cover image !!");
     }
 
-    const photoGalleryFiles = files?.photoGallery?.map((file) => file.path) || [];
+    const photoGalleryFiles = req.files?.photoGallery?.map((file) => file.path) || [];
     // Upload the photo gallery images to Cloudinary
     const photoGallery = await Promise.all(
         photoGalleryFiles.map(async (filePath) => {

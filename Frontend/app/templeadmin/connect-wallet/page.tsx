@@ -1,107 +1,85 @@
 "use client";
-import { CheckCircle2, Wallet, ArrowRight } from "lucide-react";  
-import { useMetamask } from "@/app/hooks/useMetamask";
-import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import AuthWrapper from "@/app/components/AuthWrapper";
+
+import React, { useState, useEffect } from 'react';
+import { Wallet, CheckCircle2, ArrowRight } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { useRouter } from 'next/navigation';
+import { useMetamask } from '@/app/hooks/useMetamask';
 
 export default function ConfirmWalletPage() {
   const { account, loading, error } = useMetamask();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<{ name: string; address: string } | null>(null);
   const [mounted, setMounted] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleConnectWallet = async () => {
-    console.log("Starting wallet connection...");
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+   const handleWalletConnect = async () => {
     setIsLoading(true);
-
     try {
-      // Check if Metamask is installed
-      if (typeof window.ethereum === "undefined") {
-        console.error("Metamask is not installed");
-        throw new Error("Metamask is not installed");
+      // If already connected, no need to connect again
+      if (connectedWallet?.address) {
+        toast.info("Wallet is already connected.");
+        return;
       }
 
-      console.log("Requesting Metamask accounts...");
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      const walletAddress = accounts[0];
-      console.log("Connected wallet address:", walletAddress);
+      const walletAddress = await connectWallet();
+      if (!walletAddress) {
+        throw new Error("Failed to connect wallet.");
+      }
 
-      // Get access token from session storage
       const accessToken = sessionStorage.getItem("accessToken");
-      console.log("Access Token:", accessToken);
+      if (!accessToken) throw new Error("Access token not found.");
 
-      // Store wallet address in the backend
-      console.log("Sending wallet address to backend...");
+      // Store wallet address in backend
       const response = await fetch("http://localhost:5050/api/v1/templeAdmin/store-wallet-address", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ walletAddress: account }),
+        body: JSON.stringify({ walletAddress }),
       });
 
-      console.log("Store wallet address response status:", response.status);
       const result = await response.json();
-      console.log("Store wallet address result:", result);
 
-      if (result.success) {
-        toast.success("Wallet connected successfully!");
-        console.log("Wallet successfully stored in the backend.");
-
-        // Notify Super Admin about the pending confirmation
-        console.log("Notifying Super Admin about pending confirmation...");
-        const notifyResponse = await fetch("http://localhost:5050/api/v1/superAdmin/confirm-temple-admin-registration", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ templeAdminId: result.data.templeAdminId }),
-        });
-
-        console.log("Notify Super Admin response status:", notifyResponse.status);
-        const notifyResult = await notifyResponse.json();
-        console.log("Notify Super Admin result:", notifyResult);
-
-        if (!notifyResponse.ok) {
-          console.error("Failed to notify Super Admin:", notifyResult.message);
-          toast.error(notifyResult.message || "Failed to notify SuperAdmin. Please try again.");
-          setIsLoading(false);
-          return;
-        }
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to store wallet address.");
+      }
 
       toast.success("Wallet connected successfully!");
-      router.push("/templeadmin/dashboard");
 
-        toast.success("Super Admin notified for confirmation!");
-        console.log("Super Admin successfully notified.");
-        router.push("/templeadmin/dashboard");
-      } else {
-        console.error("Failed to store wallet address:", result.message);
-        toast.error(result.message || "Failed to connect wallet. Please try again.");
+      // Notify Super Admin
+      const notifyResponse = await fetch("http://localhost:5050/api/v1/superAdmin/confirm-temple-admin-registration", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ templeAdminId: result.data.templeAdminId }),
+      });
+
+      const notifyResult = await notifyResponse.json();
+
+      if (!notifyResponse.ok) {
+        throw new Error(notifyResult.message || "Failed to notify SuperAdmin.");
       }
+
+      toast.success("Super Admin notified for confirmation!");
+
+      setConnectedWallet({ name: "MetaMask", address: walletAddress });
+      router.push("/templeadmin/dashboard");
     } catch (error: any) {
       console.error("Error connecting wallet:", error.message);
-      toast.error(`Error: ${error.message}`);
+      toast.error(error.message);
     } finally {
-      setIsConnecting(false);
-    } finally {
-      console.log("Wallet connection process completed.");
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-  if (account) {
-    handleWalletConnect();
-  }
-}, [account]);
-
 
   useEffect(() => {
     if (account) {
@@ -149,9 +127,6 @@ export default function ConfirmWalletPage() {
       </div>
     );
   }
-    console.log("Running useEffect to handle wallet connection...");
-    handleConnectWallet();
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">

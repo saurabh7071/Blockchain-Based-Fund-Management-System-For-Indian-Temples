@@ -41,6 +41,16 @@ export default function TempleFundSignup() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
+// Runs ONLY when step changes
+useEffect(() => {
+  if (currentStep === 3 && !account) {
+    // Don't call connectWallet automatically!
+    // Just prepare to show Connect button
+    console.log("Ready to connect wallet (step 3)");
+  }
+}, [currentStep]);
+
+
   // Validation functions
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const validateMobile = (phone: string) => /^[6-9]\d{9}$/.test(phone.replace(/\s/g, ""));
@@ -122,16 +132,17 @@ export default function TempleFundSignup() {
 
 
   const handleNext = async () => {
-    if (currentStep === 1) {
-      if (validateStep1()) {
-        await handleRegister();
-      }
-    } else if (currentStep === 2) {
-      await handleVerifyOtp()
-    } else if (currentStep === 3) {
-      await handleConnectMetamask();
-    }
-  };
+  if (currentStep === 1) {
+    if (validateStep1()) await handleRegister(); // move to step 2
+  } else if (currentStep === 2) {
+    await handleVerifyOtp(); // move to step 3
+  } else if (currentStep === 3) {
+    await handleConnectWallet(); // get wallet address only
+  } else if (currentStep === 4) {
+    await handleConfirmRegister(); // push to DB
+  }
+};
+
 
   const handleBack = () => {
     setCurrentStep((prev) => Math.max(1, prev - 1));
@@ -222,48 +233,58 @@ export default function TempleFundSignup() {
 
   };
 
-  const handleConnectMetamask = async () => {
-    setIsLoading(true);
-
-    try {
-      // Connect to Metamask
-      const walletAddress = await connectWallet();
-
-      if (!account) {
-        toast.error("Failed to connect to Metamask. Please try again.");
-        return;
-      }
-
-      // Store wallet address in the database
-      const accessToken = sessionStorage.getItem("accessToken");
-      const response = await fetch("http://localhost:5050/api/v1/users/store-wallet-address", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`, // Include access token for authentication
-        },
-        body: JSON.stringify({ walletAddress: account }),
-      });
-
-      const result = await response.json();
-      console.log("Store wallet address result:", result);
-
-      if (!response.ok) {
-        toast.error(result.message || "Failed to connect wallet. Please try again.");
-        return;
-      }
-
-      if (result.success) {
-        toast.success(result.message || "Wallet connected successfully!");
-        router.push("/user/dashboard"); // Redirect to dashboard
-      }
-    } catch (error) {
-      console.error("Metamask connection error:", error);
-      toast.error("An error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
+  const handleConnectWallet = async () => {
+  setIsLoading(true);
+  try {
+    const connectedAddress = await connectWallet();
+    if (!connectedAddress) {
+      toast.error("Failed to connect MetaMask wallet.");
+      return;
     }
-  };
+
+    toast.success("Wallet connected!");
+    setCurrentStep(4); // or any other logic you use after connecting
+  } catch (error) {
+    console.error(error);
+    toast.error("Unexpected error while connecting wallet.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+  const handleConfirmRegister = async () => {
+  setIsLoading(true);
+  try {
+    const accessToken = sessionStorage.getItem("accessToken");
+    const response = await fetch("http://localhost:5050/api/v1/users/store-wallet-address", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ walletAddress: account }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      toast.error(result.message || "Error saving wallet address.");
+      return;
+    }
+
+    if (result.success) {
+      toast.success("Wallet address stored successfully!");
+      router.push("/user/dashboard");
+    }
+  } catch (error) {
+    console.error(error);
+    toast.error("Unexpected error while saving wallet address.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleResendOtp = async () => {
     if (!email) {
@@ -350,7 +371,7 @@ export default function TempleFundSignup() {
         {/* Progress Bar */}
         <div className="px-8 pt-6">
           <div className="flex items-center justify-between mb-8">
-            {[1, 2, 3].map((step) => (
+            {[1, 2, 3, 4].map((step) => (
               <div key={step} className="flex items-center">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= step
@@ -364,7 +385,7 @@ export default function TempleFundSignup() {
                     step
                   )}
                 </div>
-                {step < 3 && (
+                {step < 4 && (
                   <div
                     className={`h-1 w-16 mx-2 ${currentStep > step ? "bg-orange-500" : "bg-gray-200"
                       }`}
@@ -553,6 +574,23 @@ export default function TempleFundSignup() {
             </div>
           )}
 
+{currentStep === 4 && (
+  <div className="text-center space-y-6">
+    <h2 className="text-xl font-semibold text-gray-800">
+      Final Step
+    </h2>
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <p className="text-blue-700 font-medium">
+        Click below to save your wallet address and complete registration.
+      </p>
+      <p className="text-sm text-gray-600 mt-1 break-all">
+        {account}
+      </p>
+    </div>
+  </div>
+)}
+
+
           {/* Action Buttons */}
           <div className="flex justify-between mt-8">
             {currentStep > 1 && (
@@ -576,14 +614,14 @@ export default function TempleFundSignup() {
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
               ) : (
                 <>
-                  {currentStep === 3 && account
+                  {currentStep === 4 && account
                     ? "Complete Registration"
                     : currentStep === 3
                       ? "Connect Wallet"
                       : currentStep === 2
                         ? "Verify OTP"
                         : "Continue"}
-                  {currentStep < 3 && <ArrowRight className="w-4 h-4 ml-2" />}
+                  {currentStep < 4 && <ArrowRight className="w-4 h-4 ml-2" />}
                 </>
               )}
             </button>

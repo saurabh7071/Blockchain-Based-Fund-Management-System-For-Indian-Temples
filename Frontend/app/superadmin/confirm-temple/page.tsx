@@ -2,14 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  getTempleRegistryContract,
-  SUPER_ADMIN,
-} from "@/app/utils/TempleRegistry";
-import { useMetamask } from "@/app/hooks/useMetamask";
-import { ethers } from "ethers";
-import { toast } from "react-toastify";
-import {
-  Bell,
   Check,
   X,
   Wallet,
@@ -18,60 +10,26 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "react-toastify";
-  
 
 export default function ConfirmPage() {
-  const { account, provider, error, loading } = useMetamask();
+  const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState(null);
+  const [expandedNetworkCard, setExpandedNetworkCard] = useState(null);
   const [pendingConfirmations, setPendingConfirmations] = useState([]);
-  const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState<number | null>(null);
-
-  const pendingMetaMaskConnections = [
-    {
-      id: 1,
-      templeName: "Divine Temple of Prosperity",
-      requestDate: "2024-01-15",
-      location: "Mumbai, India",
-      contactPerson: "Raj Sharma",
-      phone: "+91-9876543210",
-      email: "raj@divinetemple.org",
-      description:
-        "Ancient temple seeking blockchain integration for donation management",
-    },
-    {
-      id: 2,
-      templeName: "Sacred Heart Sanctuary",
-      requestDate: "2024-01-14",
-      location: "Delhi, India",
-      contactPerson: "Priya Gupta",
-      phone: "+91-9876543211",
-      email: "priya@sacredheart.org",
-      description: "Modern temple with focus on transparent fund allocation",
-    },
-    {
-      id: 3,
-      templeName: "Golden Lotus Temple",
-      requestDate: "2024-01-13",
-      location: "Bangalore, India",
-      contactPerson: "Kumar Reddy",
-      phone: "+91-9876543212",
-      email: "kumar@goldenlotus.org",
-      description: "Heritage temple looking to modernize donation tracking",
-    },
-  ];
 
   const pendingNetworkConnections = [
     {
       id: 1,
-      templeName: "baba ram rahim",
-      walletId: "0x2973ccafb0a9b0439a80d082d9c5acf254033df7",
+      templeName: "Divine Temple of Prosperity",
+      walletId: "0x742d35Cc6637C0532c2c0b6C7C7d7f6",
+      networkType: "Ethereum Mainnet",
       requestDate: "2024-01-15",
       gasEstimate: "0.023 ETH",
       status: "Pending Verification",
     },
     {
       id: 2,
-      templeName: "gaurav rai",
-      walletId: "0x1e846de5881612fb4bdc9dea0be0c5d79e6b9b37",
+      templeName: "Sacred Heart Sanctuary",
+      walletId: "0x8ba1f109551bD432803012645Hac136c",
       networkType: "Polygon",
       requestDate: "2024-01-14",
       gasEstimate: "0.001 MATIC",
@@ -80,7 +38,7 @@ export default function ConfirmPage() {
     {
       id: 3,
       templeName: "Golden Lotus Temple",
-      walletId: "0x75bf063b574656c6c645615497a104482960e9ae",
+      walletId: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
       networkType: "BSC",
       requestDate: "2024-01-13",
       gasEstimate: "0.002 BNB",
@@ -180,11 +138,7 @@ export default function ConfirmPage() {
   const handleRemove = (connectionId) => {
     console.log(`Removing network connection with ID: ${connectionId}`);
     alert(`Network connection removed for ID: ${connectionId}`);
-  const handleNotify = (templeId: number) => {
-    alert(`Notification sent to temple ID: ${templeId}`);
   };
-
-  
 
   return (
     <div className="space-y-6">
@@ -194,7 +148,7 @@ export default function ConfirmPage() {
         <div>
           <h3 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
             <Wallet className="mr-2" />
-            Pending MetaMask Connections
+            Pending Network Connections
           </h3>
           <div className="space-y-4">
             {pendingConfirmations.length > 0 ? (
@@ -213,7 +167,9 @@ export default function ConfirmPage() {
                         <h4 className="font-semibold text-gray-800">
                           {temple.templeName}
                         </h4>
-                        <p className="text-sm text-gray-600">{temple.templeLocation}</p>
+                        <p className="text-sm text-gray-600">
+                          {temple.templeLocation}
+                        </p>
                         <p className="text-sm text-gray-500">
                           <span className="font-medium">Request Time:</span>{" "}
                           {new Date(temple.createdAt).toLocaleString()}
@@ -263,7 +219,9 @@ export default function ConfirmPage() {
                 </div>
               ))
             ) : (
-              <p className="text-gray-600">No pending confirmations available.</p>
+              <p className="text-gray-600">
+                No pending confirmations available.
+              </p>
             )}
           </div>
         </div>
@@ -272,7 +230,7 @@ export default function ConfirmPage() {
         <div>
           <h3 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
             <Globe className="mr-2" />
-            Pending Network Connections
+            Pending Metamask Connections
           </h3>
           <div className="space-y-4">
             {pendingNetworkConnections.map((connection) => (

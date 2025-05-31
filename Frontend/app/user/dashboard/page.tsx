@@ -236,7 +236,7 @@ const UserDashboard = () => {
       <div className="bg-white p-6 rounded-2xl shadow-lg">
         <h2 className="text-xl font-bold mb-4 text-gray-800">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="flex flex-col items-center cursor-pointer p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-all">
+          <button className="flex flex-col items-center cursor-pointer p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-all" onClick={() => router.push('/user/donate')}>
             <Plus className="text-orange-600 mb-2" size={24} />
             <span className="text-sm font-medium text-gray-700">
               New Donation

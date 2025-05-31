@@ -17,14 +17,11 @@ export default function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const { account, connectWallet, loading } = useMetamask();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [step, setStep] = useState(0); // 0 = hello, 1 = welcome, 2 = digital seva
   const [showConnectedButton, setShowConnectedButton] = useState(false); // 👈 for delayed button show
 
   const handleChangePassword = () => {
     alert("Change password functionality");
   };
-
-  const [userData, setUserData] = useState<any>(null);
   const notifications = [
     {
       id: 1,
@@ -54,17 +51,6 @@ export default function Navbar() {
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
-  // Greeting sequence
-  useEffect(() => {
-    if (!loading) {
-      const helloTimer = setTimeout(() => setStep(1), 1400);
-      const welcomeTimer = setTimeout(() => setStep(2), 3000);
-      return () => {
-        clearTimeout(helloTimer);
-        clearTimeout(welcomeTimer);
-      };
-    }
-  }, [loading]);
 
   // Delayed Connect Wallet button if not connected
   useEffect(() => {
@@ -284,8 +270,8 @@ export default function Navbar() {
                       <span>Change Password</span>
                     </button>
                     <LogoutButton
-                      logoutUrl="http://localhost:5050/api/v1/superAdmin/logout-superAdmin"
-                      redirectTo="/superadminlogin"
+                      logoutUrl="http://localhost:5050/api/v1/templeAdmin/logout-Temple-Admin"
+                      redirectTo="/templelogin"
                       onLogoutClick={() => setShowUserDropdown(false)} // close dropdown immediately on click
                     >
                       <div className="w-full flex items-center space-x-3 px-3 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">

@@ -8,6 +8,7 @@ const TempleDonationPage = () => {
   const [selectedTemple, setSelectedTemple] = useState('');
   const [donationPurpose, setDonationPurpose] = useState('');
   const [selectedCrypto, setSelectedCrypto] = useState('bitcoin');
+  const [temples, setTemples] = useState([]);
   const [cryptoPrices, setCryptoPrices] = useState({
     bitcoin: { price: 67234.45, change: 2.34 },
     ethereum: { price: 3456.78, change: -1.23 },
@@ -37,13 +38,36 @@ const TempleDonationPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const temples = [
-    'Tirupati Balaji Temple',
-    'Golden Temple, Amritsar',
-    'Kedarnath Temple',
-    'Vaishno Devi Temple',
-    'Shirdi Sai Baba Temple'
-  ];
+  useEffect(() => {
+    const fetchTempleNames = async () => {
+      try {
+        const response = await fetch("http://localhost:5050/api/v1/templeDetails/get-temple-names", {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+        );
+        const result = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.warn("No temples found:", result.message);
+            setTemples([]); // Set an empty array to indicate no temples
+          } else {
+            console.error("Error fetching temple names:", result.message);
+          }
+          return;
+        }
+
+        setTemples(result.data); // Set temple names in state
+      } catch (error) {
+        console.error("Error fetching temple names:", error);
+      }
+    };
+
+    fetchTempleNames();
+  }, []);
 
   const purposes = [
     'General Fund',
@@ -157,11 +181,21 @@ const TempleDonationPage = () => {
                       onChange={(e) => setSelectedTemple(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                       required
+                      disabled={temples.length === 0}
                     >
-                      <option value="">Choose a temple...</option>
-                      {temples.map((temple, index) => (
-                        <option key={index} value={temple}>{temple}</option>
-                      ))}
+                      {temples.length === 0 ? (
+                        <option value="">No temples available</option>
+                      ) : (
+                        <>
+                          <option value="">Choose a temple...</option>
+                          {temples.map((temple, index) => (
+                            <option key={index} value={temple.templeName}>
+                              {temple.templeName}
+                            </option>
+                          ))}
+                        </>
+                      )}
+
                     </select>
                   </div>
 

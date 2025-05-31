@@ -11,6 +11,7 @@ import {
     deleteSpecialCeremony,
     addUpcomingEvent,
     deleteUpcomingEvent,
+    getTempleNames
 } from '../controllers/templeDetails.controller.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../middlewares/role.middleware.js';
@@ -77,4 +78,5 @@ router.route('/add-upcoming-event/:templeId').post(verifyJWT, authorizeRoles('te
 // Route to delete upcoming event
 router.route('/delete-upcoming-event/:templeId/:eventIndex').delete(verifyJWT, authorizeRoles('templeAdmin'), deleteUpcomingEvent);
 
+router.route('/get-temple-names').get(getTempleNames);
 export default router;

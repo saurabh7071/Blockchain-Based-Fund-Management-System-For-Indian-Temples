@@ -673,6 +673,25 @@ const deleteUpcomingEvent = asyncHandler(async (req, res) => {
     );
 });
 
+const getTempleNames = asyncHandler(async (req, res) => {
+    try {
+        const temples = await Temple.find({}, "templeName").lean(); // Fetch only templeName
+        if (!temples || temples.length === 0) {
+            throw new ApiError(404, "No temples found.");
+        }
+
+        return res.status(200).json(
+            new ApiResponse(200, temples, "Temple names fetched successfully.")
+        );
+    } catch (error) {
+        console.error("Error fetching temple names:", error);
+        return res.status(500).json({
+            success: false,
+            message: "An unexpected error occurred. Please try again later.",
+        });
+    }
+});
+
 export {
     createTemple,
     updateTempleDetails,
@@ -685,4 +704,5 @@ export {
     deleteSpecialCeremony,
     addUpcomingEvent,
     deleteUpcomingEvent,
+    getTempleNames
 }

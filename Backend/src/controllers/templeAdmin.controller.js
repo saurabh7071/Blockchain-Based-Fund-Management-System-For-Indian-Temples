@@ -392,6 +392,32 @@ const getAllTempleAdmins = asyncHandler(async (req, res) => {
     }
 });
 
+const getActiveTempleAdmins = asyncHandler(async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1; // Default to page 1
+        const limit = parseInt(req.query.limit) || 10; // Default to 10 items per page
+        const skip = (page - 1) * limit; // Calculate documents to skip
+
+        const activeTempleAdmins = await User.find({ role: "templeAdmin", status: "active" })
+            .select("name email phone templeName templeLocation status")
+            .skip(skip) // Skip documents for pagination
+            .limit(limit) // Limit the number of documents
+            .lean();
+
+        const total = await User.countDocuments({ role: "templeAdmin", status: "active" }); // Total count of active temple admins
+
+        return res.status(200).json(
+            new ApiResponse(200, { data: activeTempleAdmins, total, page, limit }, "Active temple admins fetched successfully.")
+        );
+    } catch (error) {
+        console.error("Error fetching active temple admins:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch active temple admins.",
+        });
+    }
+});
+
 export {
     storeWalletAddress,
     registerTempleAdmin,
@@ -400,5 +426,6 @@ export {
     changeTempleAdminPassword,
     refreshAccessTempleAdminToken,
     getCurrentTempleAdmin,
-    getAllTempleAdmins
+    getAllTempleAdmins,
+    getActiveTempleAdmins
 }

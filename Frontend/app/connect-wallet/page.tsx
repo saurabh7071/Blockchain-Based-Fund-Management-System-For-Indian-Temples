@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useMetamask } from '@/app/hooks/useMetamask';
 
 export default function ConfirmWalletPage() {
-  const { account, loading, error } = useMetamask();
+  const { account, loading, error, connectWallet } = useMetamask();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<{ name: string; address: string } | null>(null);
   const [mounted, setMounted] = useState(false);

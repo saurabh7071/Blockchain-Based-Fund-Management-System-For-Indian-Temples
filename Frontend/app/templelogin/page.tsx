@@ -93,7 +93,7 @@ export default function TempleAdminLogin() {
 
         if (!walletAddress) {
           // Redirect to connect-wallet page if wallet address is not stored
-          router.push("/templeadmin/connect-wallet");
+          router.push("/connect-wallet");
         } else {
           // Redirect to dashboard if wallet address is already stored
           router.push("/templeadmin/dashboard");

@@ -311,7 +311,7 @@ const confirmTempleAdminRegistration = asyncHandler(async (req, res) => {
 });
 
 const getPendingConfirmations = asyncHandler(async (req, res) => {
-    const pendingAdmins = await User.find({ role: "templeAdmin", status: "pending" }).select("-password -refreshToken");
+    const pendingAdmins = await User.find({ role: "templeAdmin", status: "pending", walletAddress: { $exists: true } }).select("-password -refreshToken");
     res.status(200).json(new ApiResponse(200, pendingAdmins, "Pending confirmations fetched successfully."));
 });
 

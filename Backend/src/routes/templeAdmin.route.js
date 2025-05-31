@@ -8,6 +8,8 @@ import {
     changeTempleAdminPassword,
     getCurrentTempleAdmin,
     getAllTempleAdmins,
+    getActiveTempleAdmins
+
 } from "../controllers/templeAdmin.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -24,5 +26,6 @@ router.route("/refresh-token").post(refreshAccessTempleAdminToken);
 router.route("/change-password").post(verifyJWT, authorizeRoles("templeAdmin"), changeTempleAdminPassword);
 router.route("/get-current-Temple-Admin").get(verifyJWT, authorizeRoles("templeAdmin"), getCurrentTempleAdmin);
 router.route("/get-all-Temple-Admins").get(verifyJWT, authorizeRoles("templeAdmin"), getAllTempleAdmins);
+router.route("/get-active-Temple-Admins").get(verifyJWT, authorizeRoles("superAdmin"), getActiveTempleAdmins);
 
 export default router;

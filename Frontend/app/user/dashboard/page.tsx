@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useMetamask } from "@/app/hooks/useMetamask";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/app/components/LogoutButton";
+import AuthWrapper from "@/app/components/AuthWrapper";
+
 import {
   Home,
   Heart,
@@ -30,7 +32,6 @@ import {
   Clock,
   CheckCircle
 } from 'lucide-react';
-import AuthWrapper from '@/app/components/AuthWrapper';
 
 const UserDashboard = () => {
   const router = useRouter();

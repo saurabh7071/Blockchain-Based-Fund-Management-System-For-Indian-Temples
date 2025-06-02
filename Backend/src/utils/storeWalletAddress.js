@@ -32,6 +32,7 @@ const storeWalletAddressUtility = async (userId, role, walletAddress) => {
     user.walletAddress = walletAddress;
     await user.save({ validateBeforeSave: false });
 
+
     return {
         walletAddress: user.walletAddress,
         message: "Wallet address connected successfully",

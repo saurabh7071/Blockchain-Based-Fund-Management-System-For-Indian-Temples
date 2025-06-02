@@ -6,6 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { blacklistToken } from "../middlewares/auth.middleware.js";
 import { templeAdminRegistrationEmail } from "../utils/emailTemplate.js";
 import { storeWalletAddressUtility } from "../utils/storeWalletAddress.js";
+import { io } from "../websocket.js"; // Import the WebSocket instance  
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
@@ -29,13 +30,34 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 const storeWalletAddress = asyncHandler(async (req, res) => {
     const { walletAddress } = req.body;
+    const userId = req.user._id;
 
-    const result = await storeWalletAddressUtility(req.user._id, "templeAdmin", walletAddress);
+    if (!walletAddress) {
+        throw new ApiError(400, "Wallet address is required.");
+    }
+
+    const result = await storeWalletAddressUtility(userId, "templeAdmin", walletAddress);
+
+    // Fetch the updated user from the database to ensure the wallet address is saved
+    const updatedUser = await User.findById(userId);
+
+    // Emit an event to notify all clients about the new confirmation
+    io.emit("update-confirmations", {
+        _id: updatedUser._id,
+        templeName: updatedUser.templeName,
+        templeLocation: updatedUser.templeLocation,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        name: updatedUser.name,
+        walletAddress: updatedUser.walletAddress,
+        status: updatedUser.status,
+        createdAt: updatedUser.createdAt,
+    });
 
     res.status(200).json(
         new ApiResponse(
-            200, 
-            { walletAddress: templeAdmin.walletAddress},
+            200,
+            { walletAddress: result.walletAddress },
             result.message
         ),
     );

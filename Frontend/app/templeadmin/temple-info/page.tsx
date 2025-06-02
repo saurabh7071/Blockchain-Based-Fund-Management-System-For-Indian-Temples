@@ -3,6 +3,9 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Save, Upload, Clock, Globe, Facebook, Instagram, Youtube, Twitter } from "lucide-react"
+import AuthWrapper from "@/app/components/AuthWrapper"
+
+
 
 export default function TempleInfo() {
   const [activeTab, setActiveTab] = useState("general")
@@ -347,72 +350,73 @@ export default function TempleInfo() {
   )
 
   return (
-    <div className="p-8 space-y-6 h-full overflow-y-auto">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Temple Information</h1>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleSave}
-          className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-xl font-medium shadow-lg flex items-center space-x-2"
+    <AuthWrapper role="templeAdmin">
+      <div className="p-8 space-y-6 h-full overflow-y-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between"
         >
-          <Save className="w-5 h-5" />
-          <span>Save Changes</span>
-        </motion.button>
-      </motion.div>
-
-      {/* Tabs */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex space-x-2"
-      >
-        {[
-          { id: "general", label: "General" },
-          { id: "images", label: "Images" },
-          { id: "timings", label: "Timings" },
-          { id: "social", label: "Social Media" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
-              activeTab === tab.id
-                ? "bg-orange-500 text-white shadow-lg"
-                : "bg-white text-gray-600 hover:bg-orange-50 border border-gray-200"
-            }`}
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Temple Information</h1>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleSave}
+            className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-xl font-medium shadow-lg flex items-center space-x-2"
           >
-            {tab.label}
-          </button>
-        ))}
-      </motion.div>
+            <Save className="w-5 h-5" />
+            <span>Save Changes</span>
+          </motion.button>
+        </motion.div>
 
-      {/* Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100"
-      >
-        {activeTab === "general" && (
-          <>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">General Information</h2>
-            <p className="text-gray-600 mb-6">Update the basic information about your temple</p>
-            {renderGeneralTab()}
-          </>
-        )}
-        {activeTab === "images" && renderImagesTab()}
-        {activeTab === "timings" && renderTimingsTab()}
-        {activeTab === "social" && renderSocialMediaTab()}
-      </motion.div>
-    </div>
+        {/* Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="flex space-x-2"
+        >
+          {[
+            { id: "general", label: "General" },
+            { id: "images", label: "Images" },
+            { id: "timings", label: "Timings" },
+            { id: "social", label: "Social Media" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-3 rounded-lg font-medium transition-all ${activeTab === tab.id
+                  ? "bg-orange-500 text-white shadow-lg"
+                  : "bg-white text-gray-600 hover:bg-orange-50 border border-gray-200"
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </motion.div>
+
+        {/* Content */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100"
+        >
+          {activeTab === "general" && (
+            <>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">General Information</h2>
+              <p className="text-gray-600 mb-6">Update the basic information about your temple</p>
+              {renderGeneralTab()}
+            </>
+          )}
+          {activeTab === "images" && renderImagesTab()}
+          {activeTab === "timings" && renderTimingsTab()}
+          {activeTab === "social" && renderSocialMediaTab()}
+        </motion.div>
+      </div>
+    </AuthWrapper>
   )
 }

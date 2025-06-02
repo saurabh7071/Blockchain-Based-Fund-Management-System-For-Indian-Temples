@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Shield, Award, TrendingUp, TrendingDown } from 'lucide-react';
 import AuthWrapper from '@/app/components/AuthWrapper';
+import { io } from 'socket.io-client';
+
+const socket = io("http://localhost:5050");
 
 const TempleDonationPage = () => {
   const [donationAmount, setDonationAmount] = useState('');
@@ -67,6 +70,16 @@ const TempleDonationPage = () => {
     };
 
     fetchTempleNames();
+
+    socket.on("temples-names-updated", (updateTempleNames) => {
+      console.log("Received updated temple names:", updateTempleNames);
+      setTemples(updateTempleNames);
+    })
+
+    return () => {
+      console.log("Cleaning up socket connection");
+      socket.off("temple-names-updated");
+    };
   }, []);
 
   const purposes = [

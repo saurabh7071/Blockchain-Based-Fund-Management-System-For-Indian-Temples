@@ -1,66 +1,60 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.20;
 
 contract TempleRegistry {
-    
-    // Hardcoded Super Admin address (MetaMask verified)
-    address public constant superAdmin = 0x2973CCafB0A9b0439a80d082d9c5ACf254033dF7;
+    address public superAdmin;
 
-    // Mapping of registered temple authorities
-    mapping(address => bool) public isTempleAuthority;
-    address[] public templeAuthorities; // Array to store all registered temple authorities
+    mapping(address => bool) private registeredTemples;
+    address[] private templeList;
 
-    // Events for logging registration and removal of temple authorities
-    event TempleAuthorityAdded(address indexed authority);
-    event TempleAuthorityRemoved(address indexed authority);
+    event TempleRegistered(address indexed temple);
+    event TempleRemoved(address indexed temple);
+    event SuperAdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
-    // Only Super Admin modifier
     modifier onlySuperAdmin() {
-        require(msg.sender == superAdmin, "Only the verified super admin can perform this action");
+        require(msg.sender == superAdmin, "Not super admin");
         _;
     }
 
-    // Register a new temple authority (Only by Super Admin)
-    function registerTemple(address authority) external onlySuperAdmin {
-        require(authority != address(0), "Invalid address");
-        require(!isTempleAuthority[authority], "Already registered");
-        
-        isTempleAuthority[authority] = true;
-        templeAuthorities.push(authority);
-
-        emit TempleAuthorityAdded(authority);
+    constructor() {
+        superAdmin = msg.sender;
     }
 
-    // Remove a registered temple authority (Only by Super Admin)
-    function removeTemple(address authority) external onlySuperAdmin {
-        require(isTempleAuthority[authority], "Not registered");
+    function registerTemple(address _templeWallet) external onlySuperAdmin {
+        require(!registeredTemples[_templeWallet], "Already registered");
+        registeredTemples[_templeWallet] = true;
+        templeList.push(_templeWallet);
+        emit TempleRegistered(_templeWallet);
+    }
 
-        isTempleAuthority[authority] = false;
+    function removeTemple(address _templeWallet) external onlySuperAdmin {
+        require(registeredTemples[_templeWallet], "Not registered");
 
-        // Remove from the array of templeAuthorities
-        for (uint i = 0; i < templeAuthorities.length; i++) {
-            if (templeAuthorities[i] == authority) {
-                templeAuthorities[i] = templeAuthorities[templeAuthorities.length - 1];
-                templeAuthorities.pop();
+        registeredTemples[_templeWallet] = false;
+
+        // Remove from templeList (gas cost: linear)
+        for (uint i = 0; i < templeList.length; i++) {
+            if (templeList[i] == _templeWallet) {
+                templeList[i] = templeList[templeList.length - 1];
+                templeList.pop();
                 break;
             }
         }
 
-        emit TempleAuthorityRemoved(authority);
+        emit TempleRemoved(_templeWallet);
     }
 
-    // Check if an address is a registered temple authority
-    function checkTemple(address authority) external view returns (bool) {
-        return isTempleAuthority[authority];
+    function isRegistered(address _templeWallet) public view returns (bool) {
+        return registeredTemples[_templeWallet];
     }
 
-    // Get all registered temple authorities
-    function getAllTempleAuthorities() external view returns (address[] memory) {
-        return templeAuthorities;
+    function getAllTemples() external view returns (address[] memory) {
+        return templeList;
     }
 
-    // Get total number of registered temple authorities
-    function getTempleAuthorityCount() external view returns (uint256) {
-        return templeAuthorities.length;
+    function transferSuperAdmin(address newAdmin) external onlySuperAdmin {
+        require(newAdmin != address(0), "Invalid address");
+        emit SuperAdminTransferred(superAdmin, newAdmin);
+        superAdmin = newAdmin;
     }
 }

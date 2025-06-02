@@ -1,61 +1,33 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Check,
-  X,
-  Wallet,
-  Globe,
-  ChevronDown,
-  ChevronRight,
-} from "lucide-react";
+import { ethers } from "ethers";
+import { Check, X, Wallet, Globe, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
+import { useMetamask } from "@/app/hooks/useMetamask";
+import { TEMPLE_REGISTRY_ADDRESS, TEMPLE_REGISTRY_ABI } from "@/app/utils/TempleRegistry";
+
+interface TempleConfirmation {
+  id: number;
+  templeName: string;
+  walletId: string;
+  networkType: string;
+  requestDate: string;
+  gasEstimate: string;
+  status: string;
+}
 
 export default function ConfirmPage() {
-  const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState(null);
-  const [expandedNetworkCard, setExpandedNetworkCard] = useState(null);
-  const [pendingConfirmations, setPendingConfirmations] = useState([]);
+  const { account, provider, connectWallet } = useMetamask();
+  const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState<number | null>(null);
+  const [expandedNetworkCard, setExpandedNetworkCard] = useState<number | null>(null);
+  const [pendingConfirmations, setPendingConfirmations] = useState<TempleConfirmation[]>([]);
 
-  const pendingNetworkConnections = [
-    {
-      id: 1,
-      templeName: "Divine Temple of Prosperity",
-      walletId: "0x742d35Cc6637C0532c2c0b6C7C7d7f6",
-      networkType: "Ethereum Mainnet",
-      requestDate: "2024-01-15",
-      gasEstimate: "0.023 ETH",
-      status: "Pending Verification",
-    },
-    {
-      id: 2,
-      templeName: "Sacred Heart Sanctuary",
-      walletId: "0x8ba1f109551bD432803012645Hac136c",
-      networkType: "Polygon",
-      requestDate: "2024-01-14",
-      gasEstimate: "0.001 MATIC",
-      status: "Ready for Confirmation",
-    },
-    {
-      id: 3,
-      templeName: "Golden Lotus Temple",
-      walletId: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
-      networkType: "BSC",
-      requestDate: "2024-01-13",
-      gasEstimate: "0.002 BNB",
-      status: "Documentation Review",
-    },
-  ];
-
-  const handleNotify = (templeId) => {
-    console.log(`Notification sent to temple ID: ${templeId}`);
-    alert(`Notification sent to temple ID: ${templeId}`);
-  };
+  const POLL_INTERVAL_MS = 5000;
 
   const fetchPendingConfirmations = async () => {
-    console.log("Fetching pending confirmations...");
     try {
       const accessToken = sessionStorage.getItem("accessToken");
-      console.log("Access Token:", accessToken);
 
       const response = await fetch(
         "http://localhost:5050/api/v1/superAdmin/get-pending-confirmations",
@@ -68,39 +40,49 @@ export default function ConfirmPage() {
         }
       );
 
-      console.log("Fetch Response Status:", response.status);
-
       const result = await response.json();
-      console.log("Fetch Result:", result);
-
       if (response.ok) {
         setPendingConfirmations(result.data);
-        console.log("Pending confirmations updated:", result.data);
       } else {
         toast.error(result.message || "Failed to fetch pending confirmations.");
       }
     } catch (error) {
-      console.error("Error fetching pending confirmations:", error);
+      console.error("Error fetching confirmations:", error);
       toast.error("An error occurred while fetching pending confirmations.");
     }
   };
 
-  useEffect(() => {
-    console.log("Initializing ConfirmPage...");
-    fetchPendingConfirmations();
-    const interval = setInterval(fetchPendingConfirmations, 5000); // poll every 5 seconds
-    return () => {
-      console.log("Cleaning up ConfirmPage...");
-      clearInterval(interval);
-    };
-  }, []);
+  const handleConfirm = async (templeAdminId: string, templeAddress: string) => {
+    if (!provider || !account) {
+      toast.error("Please connect your wallet first.");
+      await connectWallet();
+      return;
+    }
 
-  const handleConfirm = async (templeAdminId: string) => {
-    console.log(`Confirming temple admin with ID: ${templeAdminId}`);
+    if (!ethers.isAddress(templeAddress)) {
+      toast.error("Invalid temple address.");
+      return;
+    }
+
     try {
-      const accessToken = sessionStorage.getItem("accessToken");
-      console.log("Access Token:", accessToken);
+      const signer = await provider.getSigner();
+      const registry = new ethers.Contract(TEMPLE_REGISTRY_ADDRESS, TEMPLE_REGISTRY_ABI, signer);
 
+      const currentSuperAdmin = await registry.superAdmin();
+      if (account.toLowerCase() !== currentSuperAdmin.toLowerCase()) {
+        toast.error("Only the superAdmin can confirm temple registration.");
+        return;
+      }
+
+      const estimatedGas = await registry.registerTemple.estimateGas(templeAddress);
+      const gasLimit = estimatedGas * BigInt(2);
+
+      toast.info("Sending transaction to register temple...");
+      const tx = await registry.registerTemple(templeAddress, { gasLimit });
+      await tx.wait();
+      toast.success("Temple successfully registered on-chain!");
+
+      const accessToken = sessionStorage.getItem("accessToken");
       const response = await fetch(
         "http://localhost:5050/api/v1/superAdmin/confirm-temple-admin-registration",
         {
@@ -113,32 +95,30 @@ export default function ConfirmPage() {
         }
       );
 
-      console.log("Confirm Response Status:", response.status);
-
       const result = await response.json();
-      console.log("Confirm Result:", result);
-
       if (!response.ok) {
-        toast.error(
-          result.message || "Failed to confirm registration. Please try again."
-        );
+        toast.error(result.message || "Blockchain success, but DB update failed.");
         return;
       }
 
-      toast.success(
-        "Temple Admin registration confirmed and deployed on blockchain!"
-      );
-      fetchPendingConfirmations(); // Refresh list of pending confirmations
-    } catch (error) {
-      console.error("Confirmation error:", error);
-      toast.error("An error occurred. Please try again.");
+      toast.success("Temple Admin confirmed and DB updated!");
+      fetchPendingConfirmations();
+    } catch (error: any) {
+      console.error("Error during confirmation:", error);
+      toast.error("Error confirming temple: " + (error?.reason || error.message || "Unknown error"));
     }
   };
 
-  const handleRemove = (connectionId) => {
+  const handleRemove = (connectionId: number) => {
     console.log(`Removing network connection with ID: ${connectionId}`);
     alert(`Network connection removed for ID: ${connectionId}`);
   };
+
+  useEffect(() => {
+    fetchPendingConfirmations();
+    const interval = setInterval(fetchPendingConfirmations, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -207,7 +187,7 @@ export default function ConfirmPage() {
                           </p>
                         </div>
                         <button
-                          onClick={() => handleConfirm(temple._id)}
+                          onClick={() => handleConfirm(temple._id, temple.walletAddress)}
                           className="mt-4 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center text-sm font-medium"
                         >
                           <Check className="w-4 h-4 mr-2" />

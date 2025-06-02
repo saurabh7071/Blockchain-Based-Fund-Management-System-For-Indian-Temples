@@ -1,10 +1,138 @@
-import { ethers } from "ethers";
-import TempleRegistryABI from "@/app/abis/TempleRegistry.json"; // Path to your ABI
+export const TEMPLE_REGISTRY_ABI = [
+   {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oldAdmin",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newAdmin",
+          "type": "address"
+        }
+      ],
+      "name": "SuperAdminTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "temple",
+          "type": "address"
+        }
+      ],
+      "name": "TempleRegistered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "temple",
+          "type": "address"
+        }
+      ],
+      "name": "TempleRemoved",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "getAllTemples",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_templeWallet",
+          "type": "address"
+        }
+      ],
+      "name": "isRegistered",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_templeWallet",
+          "type": "address"
+        }
+      ],
+      "name": "registerTemple",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_templeWallet",
+          "type": "address"
+        }
+      ],
+      "name": "removeTemple",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "superAdmin",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newAdmin",
+          "type": "address"
+        }
+      ],
+      "name": "transferSuperAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+];
 
-const CONTRACT_ADDRESS = "0x5EE178dAB6Aa2e90a847C117f0F925d4aC45E4E2"; // Replace with deployed address
-
-export const getTempleRegistryContract = (signerOrProvider: ethers.Signer | ethers.Provider) => {
-  return new ethers.Contract(CONTRACT_ADDRESS, TempleRegistryABI, signerOrProvider);
-};
-
-export const SUPER_ADMIN = "0x2973CCafB0A9b0439a80d082d9c5ACf254033dF7";
+export const TEMPLE_REGISTRY_ADDRESS = "0x77e18839249eEe5B5EFf50edd95C5ec58c4cc67A"; // Replace with your real address

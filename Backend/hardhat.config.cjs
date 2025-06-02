@@ -1,17 +1,18 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config(); // Load environment variables from .env file
-/** @type import('hardhat/config').HardhatUserConfig */
+require("dotenv").config();
+
 module.exports = {
   solidity: "0.8.28",
   networks: {
     amoy: {
       url: process.env.AMOY_RPC_URL,
-      accounts: [process.env.SUPERADMIN_PRIVATE_KEY],
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      chainId: 80002,
     },
   },
   etherscan: {
     apiKey: {
-      polygonAmoy: "XBEJ8XINF9NG4P4JY2Z82CCE26TEXSD93G"  // Replace with your actual API key from Polygonscan
-    }
-  }
+      polygonAmoy: process.env.POLYGONSCAN_API_KEY,
+    },
+  },
 };

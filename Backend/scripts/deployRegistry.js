@@ -21,6 +21,10 @@ async function main() {
   const registryAddress = await registry.getAddress();
   console.log("TempleRegistry deployed at:", registryAddress);
 
+  // ⛽ Log gas used for deployment
+  const receipt = await registry.deploymentTransaction().wait();
+  console.log("⛽ Deployment gas used:", receipt.gasUsed.toString());
+
   // Prepare addresses JSON path
   const addressesPath = path.resolve("scripts", "deployedAddresses.json");
 

@@ -35,14 +35,14 @@ contract TempleFund {
 
     function donateEthToTemple(address temple) external payable {
         require(msg.value > 0, "Donation amount must be greater than zero");
-        require(templeRegistry.checkTemple(temple), "Temple is not registered");
+        require(templeRegistry.isRegistered(temple), "Temple is not registered");
 
         ethFunds[temple] += msg.value;
         emit EthDonationReceived(msg.sender, temple, msg.value);
     }
 
     function withdrawEth(uint256 amount) external {
-        require(templeRegistry.checkTemple(msg.sender), "Only registered temple can withdraw");
+        require(templeRegistry.isRegistered(msg.sender), "Only registered temple can withdraw");
         require(amount > 0, "Withdraw amount must be greater than zero");
         require(ethFunds[msg.sender] >= amount, "Insufficient ETH funds");
 
@@ -62,7 +62,7 @@ contract TempleFund {
 
     function donateTokenToTemple(address token, address temple, uint256 amount) external {
         require(amount > 0, "Donation amount must be greater than zero");
-        require(templeRegistry.checkTemple(temple), "Temple is not registered");
+        require(templeRegistry.isRegistered(temple), "Temple is not registered");
 
         bool success = IERC20(token).transferFrom(msg.sender, address(this), amount);
         require(success, "Token transfer failed");
@@ -72,7 +72,7 @@ contract TempleFund {
     }
 
     function withdrawTokenFunds(address token, uint256 amount) external {
-        require(templeRegistry.checkTemple(msg.sender), "Only registered temple can withdraw");
+        require(templeRegistry.isRegistered(msg.sender), "Only registered temple can withdraw");
         require(amount > 0, "Withdraw amount must be greater than zero");
         require(tokenFunds[token][msg.sender] >= amount, "Insufficient token funds");
 

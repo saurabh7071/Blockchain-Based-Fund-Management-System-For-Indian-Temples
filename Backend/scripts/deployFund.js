@@ -1,4 +1,4 @@
-import pkg from 'hardhat';
+import pkg from "hardhat";
 const { ethers, run } = pkg;
 import fs from "fs";
 import path from "path";
@@ -15,25 +15,43 @@ async function main() {
   const addressesPath = path.resolve("scripts", "deployedAddresses.json");
 
   if (!fs.existsSync(addressesPath)) {
-    console.error("deployedAddresses.json not found! Please deploy the TempleRegistry contract first.");
+    console.error(
+      "deployedAddresses.json not found! Please deploy the TempleRegistry contract first."
+    );
     process.exit(1);
   }
 
   const deployedAddresses = JSON.parse(fs.readFileSync(addressesPath, "utf8"));
 
-  if (!deployedAddresses.TempleRegistry || !deployedAddresses.TempleRegistry.contractAddress) {
-    console.error("TempleRegistry address not found in deployedAddresses.json!");
+  if (
+    !deployedAddresses.TempleRegistry ||
+    !deployedAddresses.TempleRegistry.contractAddress
+  ) {
+    console.error(
+      "TempleRegistry address not found in deployedAddresses.json!"
+    );
     process.exit(1);
   }
 
-  const templeRegistryAddress = deployedAddresses.TempleRegistry.contractAddress;
+  const templeRegistryAddress =
+    deployedAddresses.TempleRegistry.contractAddress;
   console.log("TempleRegistry address:", templeRegistryAddress);
 
   // Get the contract factory for TempleFund
   const TempleFund = await ethers.getContractFactory("TempleFund");
 
   // Deploy the TempleFund contract with the address of the TempleRegistry
-  const fund = await TempleFund.deploy(templeRegistryAddress);
+  // Deploy the TempleFund contract with gas fee overrides
+  const feeData = await ethers.provider.getFeeData();
+console.log("Network fee data:", feeData);
+
+const overrides = {
+  maxPriorityFeePerGas: feeData.maxPriorityFeePerGas*2n, // give 2x tip
+  maxFeePerGas: feeData.maxFeePerGas*2n                  // double cap
+};
+
+
+  const fund = await TempleFund.deploy(templeRegistryAddress, overrides);
   await fund.waitForDeployment();
 
   const fundAddress = await fund.getAddress();
@@ -42,14 +60,11 @@ async function main() {
   // Add the TempleFund contract address to the deployedAddresses.json
   deployedAddresses.TempleFund = {
     contractAddress: fundAddress,
-    deployedBy: deployer.address
+    deployedBy: deployer.address,
   };
 
   // Save the updated addresses to deployedAddresses.json
-  fs.writeFileSync(
-    addressesPath,
-    JSON.stringify(deployedAddresses, null, 2)
-  );
+  fs.writeFileSync(addressesPath, JSON.stringify(deployedAddresses, null, 2));
 
   console.log("Updated addresses saved to scripts/deployedAddresses.json");
 }

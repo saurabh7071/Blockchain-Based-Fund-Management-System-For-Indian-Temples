@@ -1,4 +1,11 @@
-export const refreshAccessToken = async (endpoint: string) => {
+export const refreshAccessToken = async (endpoint) => {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) {
+        throw new Error("Refresh token is missing");
+    }
+
+    //  console.log("Using refreshToken:", refreshToken); // Debugging
+
     try {
         const response = await fetch(endpoint, {
             method: "POST",
@@ -6,9 +13,7 @@ export const refreshAccessToken = async (endpoint: string) => {
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-                refreshToken: localStorage.getItem("refreshToken"), // Use the refresh token from localStorage
-            }),
+            body: JSON.stringify({ refreshToken }),
         });
 
         if (!response.ok) {
@@ -16,6 +21,7 @@ export const refreshAccessToken = async (endpoint: string) => {
         }
 
         const result = await response.json();
+        // console.log("Refresh token response:", result); // Debugging
 
         if (result.success) {
             // Store the new access token and refresh token

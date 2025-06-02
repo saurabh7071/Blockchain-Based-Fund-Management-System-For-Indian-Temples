@@ -310,8 +310,32 @@ const confirmTempleAdminRegistration = asyncHandler(async (req, res) => {
     );
 });
 
+const rejectTempleAdminRegistration = asyncHandler(async (req, res) => {
+    const { templeAdminId } = req.body;
+
+    if (!templeAdminId) {
+        throw new ApiError(400, "Temple Admin ID is required");
+    }
+
+    const templeAdmin = await User.findById(templeAdminId);
+    if (!templeAdmin || templeAdmin.role !== "templeAdmin") {
+        throw new ApiError(404, "Temple Admin not found");
+    }
+
+    // Remove the temple admin from the database
+    await User.findByIdAndDelete(templeAdminId);
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "Temple Admin registration request rejected and removed.")
+    );
+});
+
 const getPendingConfirmations = asyncHandler(async (req, res) => {
-    const pendingAdmins = await User.find({ role: "templeAdmin", status: "pending", walletAddress: { $exists: true } }).select("-password -refreshToken");
+    const pendingAdmins = await User.find({ 
+        role: "templeAdmin", 
+        status: "pending", 
+        walletAddress: { $ne: null } 
+    }).select("-password -refreshToken");
     res.status(200).json(new ApiResponse(200, pendingAdmins, "Pending confirmations fetched successfully."));
 });
 
@@ -323,6 +347,7 @@ export {
     changePassword,
     getCurrentSuperAdmin,
     confirmTempleAdminRegistration,
+    rejectTempleAdminRegistration,
     getPendingConfirmations
 };
 

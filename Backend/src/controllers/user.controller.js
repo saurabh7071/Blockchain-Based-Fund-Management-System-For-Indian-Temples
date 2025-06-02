@@ -13,11 +13,20 @@ import { storeWalletAddressUtility } from "../utils/storeWalletAddress.js";
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
         const user = await User.findById(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
         const accessToken = user.generateAccessToken()
+        // console.log("Generated Access Token:", accessToken);
+
         const refreshToken = user.generateRefreshToken()
+        // console.log("Generated Refresh Token:", refreshToken);
 
         // storing refresh token into database 
         user.refreshToken = refreshToken
+        // console.log("User's Stored Refresh Token:", refreshToken);
+
         await user.save({ validateBeforeSave: false })
 
         return { accessToken, refreshToken }
@@ -324,15 +333,15 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(401, "Refresh token is expired or used")
         }
 
+        // if both tokens are match - generate new token
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
+
         const options = {
             httpOnly: true,
             secure: true,
             sameSite: "Strict", // optional for extra security
             path: "/"
         }
-
-        // if both tokens are match - generate new token
-        const { accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
 
         // return response 
         return res
@@ -347,6 +356,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
                 )
             )
     } catch (error) {
+        console.error("Error refreshing access token:", error);
         throw new ApiError(401, error?.message || "Invalid Refresh Token")
     }
 })

@@ -29,7 +29,7 @@ export function middleware(request: NextRequest) {
                 isAuthenticated = true
             } else {
                 // Clear expired token
-                const response = NextResponse.redirect(new URL("/superadminlogin", request.url))
+                const response = handleExpiredTokenRedirect(path, request);
                 response.cookies.delete("accessToken")
                 response.cookies.delete("refreshToken")
                 return response
@@ -37,7 +37,7 @@ export function middleware(request: NextRequest) {
         } catch (error) {
             console.error("Middleware - Token verification failed:", error);
             // Clear invalid token
-            const response = NextResponse.redirect(new URL("/superadminlogin", request.url))
+            const response = handleExpiredTokenRedirect(path, request);
             response.cookies.delete("accessToken")
             response.cookies.delete("refreshToken")
             return response
@@ -95,6 +95,19 @@ export function middleware(request: NextRequest) {
     }
 
     return NextResponse.next()
+}
+
+// Helper function to handle redirection based on the path
+function handleExpiredTokenRedirect(path: string, request: NextRequest) {
+    if (path.startsWith("/superadmin")) {
+        return NextResponse.redirect(new URL("/superadminlogin", request.url));
+    } else if (path.startsWith("/templeadmin")) {
+        return NextResponse.redirect(new URL("/templelogin", request.url));
+    } else if (path.startsWith("/user")) {
+        return NextResponse.redirect(new URL("/login", request.url));
+    } else {
+        return NextResponse.redirect(new URL("/", request.url));
+    }
 }
 
 // See "Matching Paths" below to learn more

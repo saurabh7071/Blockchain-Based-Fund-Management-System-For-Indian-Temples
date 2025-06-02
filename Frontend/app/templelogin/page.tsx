@@ -26,30 +26,6 @@ export default function TempleAdminLogin() {
     password: false,
   });
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Real-time validation
-    if (name === "email") {
-      setFieldValidation((prev) => ({
-        ...prev,
-        email: value.includes("@") && value.includes("."),
-      }));
-    }
-    if (name === "password") {
-      setFieldValidation((prev) => ({
-        ...prev,
-        password: value.length >= 6,
-      }));
-    }
-
-    if (error) setError("");
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -60,7 +36,6 @@ export default function TempleAdminLogin() {
     setIsLoading(true);
 
     try {
-      // 🔥 Call your backend API to check registration
       const response = await fetch(
         "http://localhost:5050/api/v1/templeAdmin/login-Temple-Admin",
         {

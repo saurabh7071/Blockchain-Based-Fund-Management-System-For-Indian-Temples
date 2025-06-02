@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import slugify from "slugify";
+import { io } from "../websocket.js";
 
 function getPublicIdFromUrl(url) {
     const parts = url.split('/')
@@ -126,6 +127,10 @@ const createTemple = asyncHandler(async (req, res) => {
         verificationRemarks: isVerified ? verificationRemarks || "Verified by admin" : "",
     });
 
+    // Emit WebSocket event for temple names update
+    const templeNames = await Temple.find({}, "templeName").lean();
+    io.emit("temples-names-updated", templeNames); // Emit updated temple names
+
     return res
         .status(201)
         .json(
@@ -242,6 +247,10 @@ const updateTempleDetails = asyncHandler(async (req, res) => {
         console.error("Error updating temple details:", error);
         throw new ApiError(500, "Failed to update temple details");
     }
+
+    // Emit WebSocket event for temple names update
+    const templeNames = await Temple.find({}, "templeName").lean();
+    io.emit("temples-names-updated", templeNames); // Emit updated temple names
 
     return res.status(200).json(
         new ApiResponse(200, updatedFields, "Temple details updated successfully")

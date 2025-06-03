@@ -28,6 +28,11 @@ const createTemple = asyncHandler(async (req, res) => {
         verificationRemarks,
     } = req.body;
 
+     // Check if the user is a temple admin and their status is active
+    if (!req.user || req.user.role !== "templeAdmin" || req.user.status !== "active") {
+        throw new ApiError(403, "You are not authorized to create a temple. Please ensure your account is active and you should be a temple admin.");
+    }
+
     // Validation: Check required fields
     if (!templeName || typeof templeName !== "string") {
         throw new ApiError(400, "Temple name must be provided and must be a string.");
@@ -73,6 +78,14 @@ const createTemple = asyncHandler(async (req, res) => {
         throw new ApiError(409, "A temple with this email or phone number already exists.");
     }
 
+    // Parse special ceremonies and upcoming events
+    const parsedSpecialCeremonies = specialCeremonies
+        ? specialCeremonies.map((ceremony) => JSON.parse(ceremony))
+        : [];
+    const parsedUpcomingEvents = upcomingEvents
+        ? upcomingEvents.map((event) => JSON.parse(event))
+        : [];
+
     const slug = slugify(templeName, { lower: true });
 
     // const files = req.files || {};
@@ -114,9 +127,9 @@ const createTemple = asyncHandler(async (req, res) => {
         location,
         description,
         darshanTimings,
-        specialCeremonies,
+        specialCeremonies: parsedSpecialCeremonies,
         activitiesAndServices,
-        upcomingEvents,
+        upcomingEvents: parsedUpcomingEvents,
         history,
         contactDetails,
         coverImage: coverImage.secure_url,
@@ -126,10 +139,6 @@ const createTemple = asyncHandler(async (req, res) => {
         isVerified,
         verificationRemarks: isVerified ? verificationRemarks || "Verified by admin" : "",
     });
-
-    // Emit WebSocket event for temple names update
-    const templeNames = await Temple.find({}, "templeName").lean();
-    io.emit("temples-names-updated", templeNames); // Emit updated temple names
 
     return res
         .status(201)
@@ -248,51 +257,22 @@ const updateTempleDetails = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Failed to update temple details");
     }
 
-    // Emit WebSocket event for temple names update
-    const templeNames = await Temple.find({}, "templeName").lean();
-    io.emit("temples-names-updated", templeNames); // Emit updated temple names
-
     return res.status(200).json(
         new ApiResponse(200, updatedFields, "Temple details updated successfully")
     );
 });
 
-const getTempleBySlugOrId = asyncHandler(async (req, res) => {
-    const { templeId } = req.params;
-    if (!templeId || templeId.trim() === "") {
-        throw new ApiError(400, "Identifier (slug or ID) is required");
-    }
+const getTempleByAdmin = asyncHandler(async (req, res) => {
+    const adminId = req.user._id;
 
-    let temple;
-
-    const isObjectId = /^[0-9a-fA-F]{24}$/.test(templeId);
-    if (isObjectId) {
-        temple = await Temple.findById(templeId)
-            .populate("verifiedBy", "fullName") // Exclude email and refreshToken
-            .populate("registeredBy", "fullName") // Exclude email and refreshToken
-            .populate("reviews.user", "fullName email");
-    }
-
+    const temple = await Temple.findOne({ registeredBy: adminId })
+    
     if (!temple) {
-        temple = await Temple.findOne({ slug: templeId })
-            .populate("verifiedBy", "fullName") // Exclude email and refreshToken
-            .populate("registeredBy", "fullName") // Exclude email and refreshToken
-            .populate("reviews.user", "fullName email");
+        throw new ApiError(400, "Temple not found for this admin");
     }
-
-    if (!temple) {
-        throw new ApiError(404, "Temple not found with provided identifier");
-    }
-
-    // Remove sensitive fields manually if needed
-    const sanitizedTemple = {
-        ...temple.toObject(),
-        verifiedBy: temple.verifiedBy ? { fullName: temple.verifiedBy.fullName } : null,
-        registeredBy: temple.registeredBy ? { fullName: temple.registeredBy.fullName } : null,
-    };
 
     return res.status(200).json(
-        new ApiResponse(200, sanitizedTemple, "Temple fetched successfully")
+        new ApiResponse(200, temple, "Temple fetched successfully")
     );
 });
 
@@ -682,29 +662,10 @@ const deleteUpcomingEvent = asyncHandler(async (req, res) => {
     );
 });
 
-const getTempleNames = asyncHandler(async (req, res) => {
-    try {
-        const temples = await Temple.find({}, "templeName").lean(); // Fetch only templeName
-        if (!temples || temples.length === 0) {
-            throw new ApiError(404, "No temples found.");
-        }
-
-        return res.status(200).json(
-            new ApiResponse(200, temples, "Temple names fetched successfully.")
-        );
-    } catch (error) {
-        console.error("Error fetching temple names:", error);
-        return res.status(500).json({
-            success: false,
-            message: "An unexpected error occurred. Please try again later.",
-        });
-    }
-});
-
 export {
     createTemple,
     updateTempleDetails,
-    getTempleBySlugOrId,
+    getTempleByAdmin,
     getAllTemples,
     updateTempleCoverImage,
     addGalleryImages,
@@ -713,5 +674,4 @@ export {
     deleteSpecialCeremony,
     addUpcomingEvent,
     deleteUpcomingEvent,
-    getTempleNames
 }

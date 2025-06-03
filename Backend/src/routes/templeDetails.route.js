@@ -2,7 +2,7 @@ import Router from 'express';
 import { 
     createTemple,
     updateTempleDetails,
-    getTempleBySlugOrId,
+    getTempleByAdmin,
     getAllTemples,
     updateTempleCoverImage,
     addGalleryImages,
@@ -35,7 +35,7 @@ router
 router.route('/update-temple/:templeId').post(verifyJWT, authorizeRoles('templeAdmin'), updateTempleDetails);
 
 // Route to get temple by slug or ID
-router.route('/get-temple/:templeId').get(getTempleBySlugOrId);
+router.route('/get-temple-by-admin').get(verifyJWT, authorizeRoles('templeAdmin'), getTempleByAdmin);
 
 // Route to get all temples
 router.route('/get-all-temples').get(getAllTemples);
@@ -78,5 +78,4 @@ router.route('/add-upcoming-event/:templeId').post(verifyJWT, authorizeRoles('te
 // Route to delete upcoming event
 router.route('/delete-upcoming-event/:templeId/:eventIndex').delete(verifyJWT, authorizeRoles('templeAdmin'), deleteUpcomingEvent);
 
-router.route('/get-temple-names').get(getTempleNames);
 export default router;

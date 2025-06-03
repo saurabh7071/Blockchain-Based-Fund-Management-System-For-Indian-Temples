@@ -8,7 +8,8 @@ import {
     getCurrentSuperAdmin,
     confirmTempleAdminRegistration,
     rejectTempleAdminRegistration,
-    getPendingConfirmations
+    getPendingConfirmations,
+    forDonationActiveTemple
 } from "../controllers/superAdmin.controller.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 import { authorizeRoles } from "../middlewares/role.middleware.js"

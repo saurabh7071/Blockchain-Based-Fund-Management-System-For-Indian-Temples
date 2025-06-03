@@ -43,7 +43,7 @@ const templeDetailsSchema = new Schema({
 
     darshanTimings: {
         morning: { type: String },  
-        evening: { type: String },  
+        evening: { type: String }, 
     },
 
     specialCeremonies: {
@@ -61,9 +61,16 @@ const templeDetailsSchema = new Schema({
         default: [],
     },
 
+    description: {
+        type: String,
+        maxlength: 200,
+        required: [true, "Temple description is required"],
+    },
+
     history: {
         type: String,
-        maxlength: 5000,
+        maxlength: 500,
+        required: [true, "Temple history is required"],
     },
 
     contactDetails: {

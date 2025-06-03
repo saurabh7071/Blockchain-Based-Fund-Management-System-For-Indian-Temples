@@ -1,187 +1,578 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { Heart, Shield, Award, TrendingUp, TrendingDown } from 'lucide-react';
-import AuthWrapper from '@/app/components/AuthWrapper';
-import { io } from 'socket.io-client';
 
-const socket = io("http://localhost:5050");
+import React, { useState, useEffect } from "react";
+import { Heart, Shield, Award, TrendingUp, TrendingDown } from "lucide-react";
+import { useMetamask } from "@/app/hooks/useMetamask";
+import AuthWrapper from "@/app/components/AuthWrapper";
+import { TEMPLE_FUND_ABI, TEMPLE_FUND_ADDRESS } from "@/app/utils/TempleFund";
+import { ethers } from "ethers";
+import { toast } from "react-toastify";
+// Mock socket for demonstration
 
-const TempleDonationPage = () => {
-  const [donationAmount, setDonationAmount] = useState('');
-  const [selectedTemple, setSelectedTemple] = useState('');
-  const [donationPurpose, setDonationPurpose] = useState('');
-  const [selectedCrypto, setSelectedCrypto] = useState('bitcoin');
+const UnifiedTempleDonationPage = () => {
+  // Donation form state
+  const [donationAmount, setDonationAmount] = useState("");
+  const [selectedTemple, setSelectedTemple] = useState("");
+  const [donationPurpose, setDonationPurpose] = useState("");
+  const [selectedCrypto, setSelectedCrypto] = useState("bitcoin");
   const [temples, setTemples] = useState([]);
-  const [cryptoPrices, setCryptoPrices] = useState({
-    bitcoin: { price: 67234.45, change: 2.34 },
-    ethereum: { price: 3456.78, change: -1.23 },
-    bnb: { price: 542.12, change: 0.89 },
-    polygon: { price: 0.87, change: 3.45 },
-    cardano: { price: 0.43, change: -2.1 },
-    solana: { price: 195.67, change: 4.56 }
-  });
+  const { account, provider, connectWallet } = useMetamask();
+  const [ethBalance, setEthBalance] = useState<string | null>(null);
+  const [templeAddress, setTempleAddress] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [lastGasUsed, setLastGasUsed] = useState<string | null>(null);
+  const [lastTransactionCost, setLastTransactionCost] = useState<string | null>(
+    null
+  );
 
-  // Simulate real-time price updates
+  // Fetch active temple admins (for donation)
+  const fetchActiveTempleAdmins = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:5050/api/v1/templeAdmin/for-donation-active-temple",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+      console.log("Fetched active temple admins:", result);
+
+      if (!response.ok) {
+        console.error("Error fetching active temple admins:", result.message);
+        setTemples([]);
+        return;
+      }
+
+      setTemples(result.data.data);
+    } catch (error) {
+      console.error("Error fetching active temple admins:", error);
+      setTemples([]);
+    }
+  };
+
+  // Call fetch on mount
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCryptoPrices(prev => {
-        const newPrices = { ...prev };
-        Object.keys(newPrices).forEach(coin => {
-          const randomChange = (Math.random() - 0.5) * 2; // Random change between -1 and 1
-          const newPrice = prev[coin].price * (1 + randomChange / 100);
-          newPrices[coin] = {
-            price: parseFloat(newPrice.toFixed(2)),
-            change: parseFloat(randomChange.toFixed(2))
-          };
-        });
-        return newPrices;
-      });
-    }, 3000); // Update every 3 seconds
-
-    return () => clearInterval(interval);
+    fetchActiveTempleAdmins();
   }, []);
 
-  useEffect(() => {
-    const fetchTempleNames = async () => {
+  const handleTransaction = async (
+  contractCall: Promise<ethers.TransactionResponse>,
+  successMessage: string
+) => {
+  setLoading(true);
+  setLastGasUsed(null);
+  setLastTransactionCost(null);
+
+  try {
+    toast.info("📤 Transaction sent to the network...");
+    const tx = await contractCall;
+    console.log("Transaction hash:", tx.hash);
+    toast.info(`📨 Transaction hash: ${tx.hash}`);
+
+    // Show a persistent toast until confirmation
+    const waitingToastId = toast.loading("⏳ Waiting for confirmation...");
+
+    const receipt = await tx.wait();
+    console.log("Transaction confirmed:", receipt);
+
+    // Dismiss the waiting toast
+    toast.dismiss(waitingToastId);
+
+    if (receipt) {
+      const gasUsed = receipt.gasUsed;
+      // @ts-ignore
+      const effectiveGasPrice = receipt.effectiveGasPrice || receipt.gasPrice;
+
+      let totalCostWei: bigint | null = null;
+      if (effectiveGasPrice) {
+        totalCostWei = gasUsed * effectiveGasPrice;
+      }
+
+      setLastGasUsed(gasUsed.toString());
+      if (totalCostWei) {
+        setLastTransactionCost(ethers.formatEther(totalCostWei));
+      }
+
+      toast.success(`✅ ${successMessage}`);
+      toast.success(`🔗 View on explorer: ${receipt.hash}`);
+    } else {
+      toast.success(successMessage + ` (Receipt not immediately available)`);
+    }
+
+    return true;
+  } catch (error: any) {
+    console.error("Transaction failed:", error);
+    let errorMessage = "❌ Transaction failed.";
+    if (error.code === 4001) {
+      errorMessage = "🚫 Transaction rejected by user.";
+    } else if (error.data && error.data.message) {
+      errorMessage = error.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    toast.error(errorMessage);
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const donateEth = async (templeAddress: string) => {
+  if (!provider || !account) {
+    toast.error("Connect wallet first");
+    return;
+  }
+  if (!ethers.isAddress(templeAddress)) {
+    toast.error("Invalid temple address");
+    return;
+  }
+
+  try {
+    const signer = await provider.getSigner();
+    const templeFund = new ethers.Contract(
+      TEMPLE_FUND_ADDRESS,
+      TEMPLE_FUND_ABI,
+      signer
+    );
+
+    const amountInEth = donationAmount;
+    if (!amountInEth || isNaN(Number(amountInEth)) || Number(amountInEth) <= 0) {
+      toast.error("Invalid donation amount");
+      return;
+    }
+
+    toast.info(`🚀 Initiating donation of ${amountInEth} ETH...`);
+
+    const success = await handleTransaction(
+      templeFund.donateEthToTemple(templeAddress, {
+        value: ethers.parseEther(amountInEth),
+      }),
+      "Donation successful!"
+    );
+
+    if (success) {
+      fetchEthBalance(templeAddress);
+    }
+  } catch (error) {
+    console.error(error);
+    toast.error("Donation failed");
+  }
+};
+
+
+  const fetchEthBalance = async (templeAddr: string) => {
+      if (!provider || !ethers.isAddress(templeAddr)) {
+        toast.error("Invalid temple address or wallet not connected.");
+        return;
+      }
       try {
-        const response = await fetch("http://localhost:5050/api/v1/templeDetails/get-temple-names", {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }
+        const templeFund = new ethers.Contract(
+          TEMPLE_FUND_ADDRESS,
+          TEMPLE_FUND_ABI,
+          provider
         );
-        const result = await response.json();
+        const balance = await templeFund.getTempleEthBalance(templeAddr);
+        setEthBalance(ethers.formatEther(balance));
+      } catch (error) {
+        toast.error("Failed to fetch ETH balance.");
+        console.error(error);
+      }
+    };
+    
+    const purposes = [
+    "General Fund",
+    "Prasadam Distribution",
+    "Temple Maintenance",
+    "Festival Celebrations",
+    "Educational Programs",
+    "Community Kitchen",
+  ];
+      const handleDonate = () => {
+    if (
+      !donationAmount ||
+      !selectedTemple ||
+      !donationPurpose ||
+      !selectedCrypto
+    ) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    const getTempleAddressByName = (name: string) => {
+      const temple = temples.find((t) => t.templeName === name);
+      return temple ? temple.walletAddress : null;
+    };
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            console.warn("No temples found:", result.message);
-            setTemples([]); // Set an empty array to indicate no temples
-          } else {
-            console.error("Error fetching temple names:", result.message);
-          }
-          return;
+    const cryptoInfo = {
+      bitcoin: "BTC",
+      ethereum: "ETH",
+      bnb: "BNB",
+      polygon: "MATIC",
+      cardano: "ADA",
+      solana: "SOL",
+    };
+
+    const selectedCryptoPrice = cryptoPrices[selectedCrypto]?.price || 0;
+    const usdValue = (parseFloat(donationAmount) * selectedCryptoPrice).toFixed(
+      2
+    );
+
+    const templeAddress = getTempleAddressByName(selectedTemple);
+
+    if (!templeAddress) {
+      toast.error("Temple wallet address not found.");
+      return;
+    }
+
+    if (selectedCrypto === "ethereum" || selectedCrypto === "polygon") {
+      // assuming same contract for both ETH & MATIC (since both EVM chains)
+      donateEth(templeAddress);
+    } else {
+      toast.error(`${cryptoInfo[selectedCrypto]} donations not supported yet.`);
+    }
+  };
+
+  // Crypto prices state
+  const [allCryptoPrices, setAllCryptoPrices] = useState([]);
+  const [cryptoPrices, setCryptoPrices] = useState({
+    bitcoin: { price: 0, change: 0 },
+    ethereum: { price: 0, change: 0 },
+    bnb: { price: 0, change: 0 },
+    polygon: { price: 0, change: 0 },
+    cardano: { price: 0, change: 0 },
+    solana: { price: 0, change: 0 },
+  });
+  const [loadingPrices, setLoadingPrices] = useState(true);
+  const [priceError, setPriceError] = useState(null);
+  const [marketStats, setMarketStats] = useState({
+    totalMarketCap: 0,
+    totalVolume: 0,
+    activeCoins: 0,
+  });
+
+  // Fetch comprehensive crypto data
+  useEffect(() => {
+    const fetchCryptoPrices = async () => {
+      try {
+        setLoadingPrices(true);
+        setPriceError(null);
+
+        const marketResponse = await fetch(
+          "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h"
+        );
+
+        if (!marketResponse.ok) {
+          throw new Error(`HTTP error! status: ${marketResponse.status}`);
         }
 
-        setTemples(result.data); // Set temple names in state
+        const marketData = await marketResponse.json();
+
+        const coinGeckoIds =
+          "bitcoin,ethereum,binancecoin,matic-network,cardano,solana";
+        const specificResponse = await fetch(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${coinGeckoIds}&vs_currencies=usd&include_24hr_change=true`
+        );
+
+        if (!specificResponse.ok) {
+          throw new Error(`HTTP error! status: ${specificResponse.status}`);
+        }
+
+        const specificData = await specificResponse.json();
+
+        let carouselCurrencies = marketData.map((coin) => ({
+          id: coin.id,
+          name: coin.name,
+          symbol: coin.symbol.toUpperCase(),
+          price: coin.current_price,
+          image: coin.image,
+          price_change_percentage_24h: coin.price_change_percentage_24h,
+          market_cap: coin.market_cap,
+        }));
+
+        // Ensure MATIC is included
+        const maticInCarousel = carouselCurrencies.find(
+          (coin) => coin.id === "matic-network"
+        );
+        if (!maticInCarousel && specificData["matic-network"]) {
+          const maticMarketData = await fetch(
+            `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=matic-network`
+          )
+            .then((res) => res.json())
+            .then((data) => data[0])
+            .catch(() => null);
+
+          if (maticMarketData) {
+            carouselCurrencies.push({
+              id: "matic-network",
+              name: "Polygon",
+              symbol: "MATIC",
+              price: specificData["matic-network"].usd,
+              image:
+                maticMarketData.image ||
+                "https://assets.coingecko.com/coins/images/4713/large/matic-token-icon.png",
+              price_change_percentage_24h:
+                specificData["matic-network"].usd_24h_change,
+              market_cap: maticMarketData.market_cap || 0,
+            });
+          }
+        }
+
+        const uniqueCurrencies = Array.from(
+          new Map(carouselCurrencies.map((item) => [item.id, item])).values()
+        ).slice(0, 18);
+
+        setAllCryptoPrices(uniqueCurrencies);
+
+        // Set donation form crypto prices
+        setCryptoPrices({
+          bitcoin: {
+            price: specificData.bitcoin?.usd || 0,
+            change: specificData.bitcoin?.usd_24h_change || 0,
+          },
+          ethereum: {
+            price: specificData.ethereum?.usd || 0,
+            change: specificData.ethereum?.usd_24h_change || 0,
+          },
+          bnb: {
+            price: specificData.binancecoin?.usd || 0,
+            change: specificData.binancecoin?.usd_24h_change || 0,
+          },
+          polygon: {
+            price: specificData["matic-network"]?.usd || 0,
+            change: specificData["matic-network"]?.usd_24h_change || 0,
+          },
+          cardano: {
+            price: specificData.cardano?.usd || 0,
+            change: specificData.cardano?.usd_24h_change || 0,
+          },
+          solana: {
+            price: specificData.solana?.usd || 0,
+            change: specificData.solana?.usd_24h_change || 0,
+          },
+        });
+
+        const totalMarketCap = uniqueCurrencies.reduce(
+          (sum, crypto) => sum + (crypto.market_cap || 0),
+          0
+        );
+        const totalVolume = totalMarketCap * 0.05;
+
+        setMarketStats({
+          totalMarketCap,
+          totalVolume,
+          activeCoins: uniqueCurrencies.length,
+        });
       } catch (error) {
-        console.error("Error fetching temple names:", error);
+        console.error("Failed to fetch crypto prices:", error);
+        setPriceError("Failed to load prices. Please try again later.");
+      } finally {
+        setLoadingPrices(false);
       }
     };
 
-    fetchTempleNames();
-
-    socket.on("temples-names-updated", (updateTempleNames) => {
-      console.log("Received updated temple names:", updateTempleNames);
-      setTemples(updateTempleNames);
-    })
-
-    return () => {
-      console.log("Cleaning up socket connection");
-      socket.off("temple-names-updated");
-    };
+    fetchCryptoPrices();
+    const interval = setInterval(fetchCryptoPrices, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  const purposes = [
-    'General Fund',
-    'Prasadam Distribution',
-    'Temple Maintenance',
-    'Festival Celebrations',
-    'Educational Programs',
-    'Community Kitchen'
-  ];
 
-  const handleWalletConnect = () => {
-    alert('Wallet connection will be handled by your navbar component');
-  };
 
-  const handleDonate = () => {
-    if (!donationAmount || !selectedTemple || !donationPurpose || !selectedCrypto) {
-      alert('Please fill all fields');
-      return;
+  const formatPrice = (price) => {
+    if (price >= 1) {
+      return price.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
     }
-    const cryptoInfo = {
-      bitcoin: 'BTC',
-      ethereum: 'ETH',
-      bnb: 'BNB',
-      polygon: 'MATIC',
-      cardano: 'ADA',
-      solana: 'SOL'
-    };
-    alert(`Donation of ${donationAmount} ${cryptoInfo[selectedCrypto]} to ${selectedTemple} for ${donationPurpose} initiated!`);
+    return price.toFixed(6);
   };
+
+  const formatMarketCap = (marketCap) => {
+    if (marketCap >= 1e12) {
+      return (marketCap / 1e12).toFixed(1) + "T";
+    } else if (marketCap >= 1e9) {
+      return (marketCap / 1e9).toFixed(1) + "B";
+    } else if (marketCap >= 1e6) {
+      return (marketCap / 1e6).toFixed(1) + "M";
+    }
+    return "N/A";
+  };
+
+  const duplicatedCryptos = [...allCryptoPrices, ...allCryptoPrices];
+
+  const cryptoOptions = [
+    { value: "bitcoin", name: "Bitcoin (BTC)" },
+    { value: "ethereum", name: "Ethereum (ETH)" },
+    { value: "bnb", name: "Binance Coin (BNB)" },
+    { value: "polygon", name: "Polygon (MATIC)" },
+    { value: "cardano", name: "Cardano (ADA)" },
+    { value: "solana", name: "Solana (SOL)" },
+  ];
 
   return (
     <AuthWrapper role="user">
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50">
-        {/* Main Content */}
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          {/* Header Section */}
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-800 mb-6">
-              Live Crypto Prices
-            </h2>
-
-            {/* Crypto Price Ticker */}
-            <div className="bg-gray-800 rounded-xl shadow-lg p-4 mb-8 border border-gray-600">
-              <div className="flex items-center justify-center mb-4">
-                <div className="bg-green-500 w-2 h-2 rounded-full animate-pulse mr-2"></div>
-                <h3 className="text-white text-sm font-semibold">Live Crypto Prices</h3>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {Object.entries(cryptoPrices).map(([coin, data]) => {
-                  const coinInfo = {
-                    bitcoin: { symbol: 'BTC', color: 'from-orange-400 to-orange-600' },
-                    ethereum: { symbol: 'ETH', color: 'from-blue-400 to-blue-600' },
-                    bnb: { symbol: 'BNB', color: 'from-yellow-400 to-yellow-600' },
-                    polygon: { symbol: 'MATIC', color: 'from-purple-400 to-purple-600' },
-                    cardano: { symbol: 'ADA', color: 'from-cyan-400 to-cyan-600' },
-                    solana: { symbol: 'SOL', color: 'from-green-400 to-green-600' }
-                  };
-                  const info = coinInfo[coin];
-
-                  return (
-                    <div key={coin} className="bg-gray-700 backdrop-blur-sm rounded-lg p-3 border border-gray-600 hover:border-gray-500 transition-all duration-300">
-                      <div className="flex items-center mb-2">
-                        <div className={`w-6 h-6 bg-gradient-to-r ${info.color} rounded-full flex items-center justify-center mr-2`}>
-                          <span className="text-white text-xs font-bold">
-                            {info.symbol.slice(0, 1)}
-                          </span>
-                        </div>
-                        <h4 className="font-semibold text-white text-xs">{info.symbol}</h4>
-                      </div>
-
-                      <p className="text-lg font-bold text-white mb-1">
-                        ${data.price > 1000 ? (data.price / 1000).toFixed(1) + 'K' : data.price.toFixed(2)}
-                      </p>
-                      <div className={`flex items-center text-xs ${data.change >= 0 ? 'text-green-300' : 'text-red-300'
-                        }`}>
-                        {data.change >= 0 ?
-                          <TrendingUp className="w-3 h-3 mr-1" /> :
-                          <TrendingDown className="w-3 h-3 mr-1" />
-                        }
-                        <span className="font-medium">
-                          {data.change >= 0 ? '+' : ''}{data.change}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          {/* Live Crypto Carousel Section */}
+          <div className="mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-orange-500 via-red-500 to-purple-600 bg-clip-text text-transparent mb-4">
+                🚀 Live Crypto Market
+              </h2>
+              <p className="text-gray-600 text-lg">
+                Real-time cryptocurrency prices • Updates every 30 seconds
+              </p>
+              <div className="flex justify-center items-center mt-4 space-x-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-green-500 text-sm font-medium">LIVE</span>
               </div>
             </div>
 
+            {/* Crypto Carousel */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-50 via-white to-red-50 border border-orange-200 shadow-xl mb-8">
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-purple-500/5"></div>
+
+              {loadingPrices && (
+                <div className="text-center py-16">
+                  <div className="inline-flex items-center space-x-3">
+                    <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-gray-700 text-xl font-medium">
+                      Loading crypto prices...
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {priceError && (
+                <div className="text-center py-16">
+                  <div className="text-red-500 text-xl">⚠️ {priceError}</div>
+                </div>
+              )}
+
+              {!loadingPrices && !priceError && allCryptoPrices.length > 0 && (
+                <div className="relative">
+                  <div
+                    className="flex animate-scroll"
+                    style={{
+                      animation: "scroll 60s linear infinite",
+                      width: `${duplicatedCryptos.length * 320}px`,
+                    }}
+                  >
+                    {duplicatedCryptos.map((crypto, index) => (
+                      <div
+                        key={`${crypto.id}-${index}`}
+                        className="flex-shrink-0 w-80 mx-2 bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-orange-200/50 hover:border-orange-400/70 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer"
+                        onClick={() => {
+                          // Auto-select crypto for donation if it's available
+                          const cryptoMapping = {
+                            bitcoin: "bitcoin",
+                            ethereum: "ethereum",
+                            binancecoin: "bnb",
+                            "matic-network": "polygon",
+                            cardano: "cardano",
+                            solana: "solana",
+                          };
+                          const mappedCrypto = cryptoMapping[crypto.id];
+                          if (mappedCrypto) {
+                            setSelectedCrypto(mappedCrypto);
+                            document
+                              .getElementById("donation-form")
+                              ?.scrollIntoView({ behavior: "smooth" });
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <img
+                              src={crypto.image}
+                              alt={crypto.name}
+                              className="w-12 h-12 rounded-full shadow-md transition-transform duration-300 hover:scale-110"
+                              onError={(e) => {
+                                e.target.src = `data:image/svg+xml;base64,${btoa(`
+                                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="24" cy="24" r="24" fill="#F59E0B"/>
+                                    <text x="24" y="30" text-anchor="middle" fill="white" font-size="16" font-weight="bold">${crypto.symbol.charAt(
+                                      0
+                                    )}</text>
+                                  </svg>
+                                `)}`;
+                              }}
+                            />
+                            <div>
+                              <h3 className="text-gray-800 font-bold text-lg">
+                                {crypto.symbol}
+                              </h3>
+                              <p className="text-gray-500 text-sm truncate max-w-[120px]">
+                                {crypto.name}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-gray-800 mb-1">
+                              ${formatPrice(crypto.price)}
+                            </div>
+                            <div className="flex items-center justify-end space-x-1">
+                              {crypto.price_change_percentage_24h >= 0 ? (
+                                <TrendingUp className="w-4 h-4 text-green-500" />
+                              ) : (
+                                <TrendingDown className="w-4 h-4 text-red-500" />
+                              )}
+                              <span
+                                className={`font-semibold text-sm ${
+                                  crypto.price_change_percentage_24h >= 0
+                                    ? "text-green-500"
+                                    : "text-red-500"
+                                }`}
+                              >
+                                {Math.abs(
+                                  crypto.price_change_percentage_24h || 0
+                                ).toFixed(2)}
+                                %
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-200">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Market Cap</span>
+                            <span className="text-gray-700 font-medium">
+                              ${formatMarketCap(crypto.market_cap)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Donation Section Header */}
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-800 mb-6">
+              Temple Crypto Donations
+            </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Make donations using various cryptocurrencies with complete transparency.
-              Track your contributions in real-time with blockchain technology.
+              Make donations using various cryptocurrencies with complete
+              transparency. Track your contributions in real-time with
+              blockchain technology.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-8" id="donation-form">
             {/* Donation Form */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-xl shadow-lg p-8">
-                <h3 className="text-2xl font-bold text-gray-800 mb-6">Make a Donation</h3>
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">
+                  Make a Donation
+                </h3>
 
                 <div className="space-y-6">
                   {/* Temple Selection */}
@@ -194,21 +585,13 @@ const TempleDonationPage = () => {
                       onChange={(e) => setSelectedTemple(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                       required
-                      disabled={temples.length === 0}
                     >
-                      {temples.length === 0 ? (
-                        <option value="">No temples available</option>
-                      ) : (
-                        <>
-                          <option value="">Choose a temple...</option>
-                          {temples.map((temple, index) => (
-                            <option key={index} value={temple.templeName}>
-                              {temple.templeName}
-                            </option>
-                          ))}
-                        </>
-                      )}
-
+                      <option value="">Choose a temple...</option>
+                      {temples.map((temple, index) => (
+                        <option key={index} value={temple.templeName}>
+                          {temple.templeName}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -225,12 +608,14 @@ const TempleDonationPage = () => {
                     >
                       <option value="">Select purpose...</option>
                       {purposes.map((purpose, index) => (
-                        <option key={index} value={purpose}>{purpose}</option>
+                        <option key={index} value={purpose}>
+                          {purpose}
+                        </option>
                       ))}
                     </select>
                   </div>
 
-                  {/* Cryptocurrency Selection */}
+                  {/* Cryptocurrency Selection Dropdown */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Select Cryptocurrency
@@ -241,92 +626,72 @@ const TempleDonationPage = () => {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                       required
                     >
-                      <option value="bitcoin">Bitcoin (BTC)</option>
-                      <option value="ethereum">Ethereum (ETH)</option>
-                      <option value="bnb">Binance Coin (BNB)</option>
-                      <option value="polygon">Polygon (MATIC)</option>
-                      <option value="cardano">Cardano (ADA)</option>
-                      <option value="solana">Solana (SOL)</option>
+                      {cryptoOptions.map((crypto) => (
+                        <option key={crypto.value} value={crypto.value}>
+                          {crypto.name}
+                        </option>
+                      ))}
                     </select>
+
+                    {/* Live Price Display */}
+                    {selectedCrypto &&
+                      cryptoPrices[selectedCrypto]?.price > 0 && (
+                        <div className="mt-2 p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Current Price:
+                          </span>
+                          <div className="text-right">
+                            <span className="font-bold text-gray-800">
+                              ${formatPrice(cryptoPrices[selectedCrypto].price)}
+                            </span>
+                            <div
+                              className={`text-xs ml-2 inline-block ${
+                                cryptoPrices[selectedCrypto].change >= 0
+                                  ? "text-green-500"
+                                  : "text-red-500"
+                              }`}
+                            >
+                              {cryptoPrices[selectedCrypto].change >= 0
+                                ? "+"
+                                : ""}
+                              {cryptoPrices[selectedCrypto].change?.toFixed(2)}%
+                            </div>
+                          </div>
+                        </div>
+                      )}
                   </div>
 
                   {/* Amount Input */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Donation Amount ({selectedCrypto ? Object.entries({
-                        bitcoin: 'BTC',
-                        ethereum: 'ETH',
-                        bnb: 'BNB',
-                        polygon: 'MATIC',
-                        cardano: 'ADA',
-                        solana: 'SOL'
-                      }).find(([key]) => key === selectedCrypto)?.[1] : 'Crypto'})
+                      Donation Amount (
+                      {cryptoOptions
+                        .find((c) => c.value === selectedCrypto)
+                        ?.name.match(/\(([^)]+)\)/)?.[1] || "Crypto"}
+                      )
                     </label>
-                    <input
-                      type="number"
-                      value={donationAmount}
-                      onChange={(e) => setDonationAmount(e.target.value)}
-                      placeholder={`Enter amount in ${selectedCrypto ? Object.entries({
-                        bitcoin: 'BTC',
-                        ethereum: 'ETH',
-                        bnb: 'BNB',
-                        polygon: 'MATIC',
-                        cardano: 'ADA',
-                        solana: 'SOL'
-                      }).find(([key]) => key === selectedCrypto)?.[1] : 'crypto'}`}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                      required
-                      min="0.001"
-                      step="0.001"
-                    />
-                  </div>
-
-                  {/* Quick Amount Buttons */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Quick Select
-                    </label>
-                    <div className="grid grid-cols-4 gap-3">
-                      {selectedCrypto === 'bitcoin' && [0.001, 0.005, 0.01, 0.05].map(amount => (
-                        <button
-                          key={amount}
-                          type="button"
-                          onClick={() => setDonationAmount(amount.toString())}
-                          className="px-4 py-2 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors text-sm"
-                        >
-                          {amount} BTC
-                        </button>
-                      ))}
-                      {selectedCrypto === 'ethereum' && [0.01, 0.05, 0.1, 0.5].map(amount => (
-                        <button
-                          key={amount}
-                          type="button"
-                          onClick={() => setDonationAmount(amount.toString())}
-                          className="px-4 py-2 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors text-sm"
-                        >
-                          {amount} ETH
-                        </button>
-                      ))}
-                      {(selectedCrypto === 'bnb' || selectedCrypto === 'solana') && [0.1, 0.5, 1, 5].map(amount => (
-                        <button
-                          key={amount}
-                          type="button"
-                          onClick={() => setDonationAmount(amount.toString())}
-                          className="px-4 py-2 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors text-sm"
-                        >
-                          {amount} {selectedCrypto === 'bnb' ? 'BNB' : 'SOL'}
-                        </button>
-                      ))}
-                      {(selectedCrypto === 'polygon' || selectedCrypto === 'cardano') && [1, 10, 50, 100].map(amount => (
-                        <button
-                          key={amount}
-                          type="button"
-                          onClick={() => setDonationAmount(amount.toString())}
-                          className="px-4 py-2 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors text-sm"
-                        >
-                          {amount} {selectedCrypto === 'polygon' ? 'MATIC' : 'ADA'}
-                        </button>
-                      ))}
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={donationAmount}
+                        onChange={(e) => setDonationAmount(e.target.value)}
+                        placeholder="Enter amount"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                        required
+                        min="0.001"
+                        step="0.001"
+                      />
+                      {donationAmount &&
+                        cryptoPrices[selectedCrypto]?.price && (
+                          <div className="absolute right-3 top-3 text-sm text-gray-500">
+                            ≈ $
+                            {(
+                              parseFloat(donationAmount) *
+                              cryptoPrices[selectedCrypto].price
+                            ).toFixed(2)}{" "}
+                            USD
+                          </div>
+                        )}
                     </div>
                   </div>
 
@@ -345,27 +710,37 @@ const TempleDonationPage = () => {
             <div className="space-y-6">
               {/* Features */}
               <div className="bg-white rounded-xl shadow-lg p-6">
-                <h4 className="text-lg font-bold text-gray-800 mb-4">Why Donate Here?</h4>
+                <h4 className="text-lg font-bold text-gray-800 mb-4">
+                  Why Donate Here?
+                </h4>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
                     <Shield className="h-5 w-5 text-green-500 mt-1" />
                     <div>
                       <h5 className="font-medium text-gray-800">Transparent</h5>
-                      <p className="text-sm text-gray-600">Every transaction recorded on blockchain</p>
+                      <p className="text-sm text-gray-600">
+                        Every transaction recorded on blockchain
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
                     <Award className="h-5 w-5 text-blue-500 mt-1" />
                     <div>
                       <h5 className="font-medium text-gray-800">Verified</h5>
-                      <p className="text-sm text-gray-600">All temples verified and authentic</p>
+                      <p className="text-sm text-gray-600">
+                        All temples verified and authentic
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
                     <TrendingUp className="h-5 w-5 text-purple-500 mt-1" />
                     <div>
-                      <h5 className="font-medium text-gray-800">Impact Tracking</h5>
-                      <p className="text-sm text-gray-600">See how your donation is used</p>
+                      <h5 className="font-medium text-gray-800">
+                        Impact Tracking
+                      </h5>
+                      <p className="text-sm text-gray-600">
+                        See how your donation is used
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -373,25 +748,27 @@ const TempleDonationPage = () => {
 
               {/* Recent Donations */}
               <div className="bg-white rounded-xl shadow-lg p-6">
-                <h4 className="text-lg font-bold text-gray-800 mb-4">Recent Donations</h4>
+                <h4 className="text-lg font-bold text-gray-800 mb-4">
+                  Recent Donations
+                </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium text-gray-800">₹2,500</p>
+                      <p className="font-medium text-gray-800">0.05 BTC</p>
                       <p className="text-sm text-gray-600">Tirupati Balaji</p>
                     </div>
                     <span className="text-xs text-gray-500">2 hours ago</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium text-gray-800">₹1,000</p>
+                      <p className="font-medium text-gray-800">1.2 ETH</p>
                       <p className="text-sm text-gray-600">Golden Temple</p>
                     </div>
                     <span className="text-xs text-gray-500">5 hours ago</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium text-gray-800">₹500</p>
+                      <p className="font-medium text-gray-800">500 MATIC</p>
                       <p className="text-sm text-gray-600">Kedarnath Temple</p>
                     </div>
                     <span className="text-xs text-gray-500">1 day ago</span>
@@ -402,8 +779,8 @@ const TempleDonationPage = () => {
               {/* Total Raised */}
               <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg p-6 text-white">
                 <h4 className="text-lg font-bold mb-2">Total Raised</h4>
-                <p className="text-3xl font-bold">₹12,45,678</p>
-                <p className="text-orange-100 text-sm">This month: ₹2,34,567</p>
+                <p className="text-3xl font-bold">$2,45,678</p>
+                <p className="text-orange-100 text-sm">This month: $34,567</p>
               </div>
             </div>
           </div>
@@ -413,13 +790,31 @@ const TempleDonationPage = () => {
         <footer className="bg-gray-800 text-white py-8 mt-16">
           <div className="max-w-6xl mx-auto px-4 text-center">
             <p className="text-gray-400">
-              &copy; 2025 DevTemple. Empowering sacred traditions through blockchain technology.
+              &copy; 2025 DevTemple. Empowering sacred traditions through
+              blockchain technology.
             </p>
           </div>
         </footer>
+
+        <style jsx>{`
+          @keyframes scroll {
+            0% {
+              transform: translateX(0);
+            }
+            100% {
+              transform: translateX(-50%);
+            }
+          }
+          .animate-scroll {
+            animation: scroll 60s linear infinite;
+          }
+          .animate-scroll:hover {
+            animation-play-state: paused;
+          }
+        `}</style>
       </div>
     </AuthWrapper>
   );
 };
 
-export default TempleDonationPage;
+export default UnifiedTempleDonationPage;

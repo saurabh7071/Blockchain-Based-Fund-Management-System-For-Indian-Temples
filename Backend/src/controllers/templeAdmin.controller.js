@@ -414,6 +414,7 @@ const getAllTempleAdmins = asyncHandler(async (req, res) => {
     }
 });
 
+
 const getActiveTempleAdmins = asyncHandler(async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1; // Default to page 1
@@ -440,6 +441,24 @@ const getActiveTempleAdmins = asyncHandler(async (req, res) => {
     }
 });
 
+const forDonationActiveTemple = asyncHandler(async (req, res) => {
+  try {
+    const activeTempleAdmins = await User.find({ role: "templeAdmin", status: "active" })
+      .select("templeName walletAddress")
+      .lean();
+
+    return res.status(200).json(
+      new ApiResponse(200, { data: activeTempleAdmins }, "Active temple admins fetched successfully.")
+    );
+  } catch (error) {
+    console.error("Error fetching active temple admins:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch active temple admins.",
+    });
+  }
+});
+
 export {
     storeWalletAddress,
     registerTempleAdmin,
@@ -449,5 +468,7 @@ export {
     refreshAccessTempleAdminToken,
     getCurrentTempleAdmin,
     getAllTempleAdmins,
-    getActiveTempleAdmins
+    getActiveTempleAdmins,
+    forDonationActiveTemple
+
 }

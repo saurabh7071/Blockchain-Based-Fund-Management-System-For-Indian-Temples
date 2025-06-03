@@ -474,5 +474,5 @@ export {
     resetPasswordWithOtp,
     resendPasswordResetOtp,
     getCurrentUser,
-    generateAccessAndRefreshTokens
+    generateAccessAndRefreshTokens,
 }

@@ -2,6 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
+import { ethers } from "ethers";
+import { useMetamask } from "@/app/hooks/useMetamask";
+import {
+  TEMPLE_REGISTRY_ABI,
+  TEMPLE_REGISTRY_ADDRESS,
+} from "@/app/utils/TempleRegistry";
 import {
   Check,
   X,
@@ -18,6 +24,14 @@ const socket = io("http://localhost:5050");
 export default function ConfirmPage() {
   const [expandedMetaMaskCard, setExpandedMetaMaskCard] = useState(null);
   const [expandedNetworkCard, setExpandedNetworkCard] = useState(null);
+  const { account, provider} = useMetamask();
+  const [templeAddressToRegister, setTempleAddressToRegister] =
+    useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [lastGasUsed, setLastGasUsed] = useState<string | null>(null); // New state for gas used
+  const [lastTransactionCost, setLastTransactionCost] = useState<string | null>(
+    null
+  );
   const [pendingConfirmations, setPendingConfirmations] = useState<any[]>([]);
 
   const pendingNetworkConnections = [
@@ -79,13 +93,11 @@ export default function ConfirmPage() {
     }
   };
 
-
   useEffect(() => {
     fetchPendingConfirmations();
 
-    // Listen for updates from the websocket server 
+    // Listen for updates from the websocket server
     socket.on("update-confirmations", (newConfirmation) => {
-
       setPendingConfirmations((prev) => {
         // Check if the new confirmation already exists in the state
         const exists = prev.some(
@@ -108,44 +120,141 @@ export default function ConfirmPage() {
     };
   }, []);
 
-  const handleConfirm = async (templeAdminId: string) => {
+  const handleTransaction = async (
+    contractCall: Promise<ethers.TransactionResponse>,
+    successMessage: string
+  ) => {
+    setLoading(true);
+    setLastGasUsed(null); // Clear previous gas info
+    setLastTransactionCost(null); // Clear previous cost info
 
+    try {
+      toast.info("Transaction sent. Waiting for confirmation...");
+      const tx = await contractCall;
+      console.log("Transaction hash:", tx.hash);
+      toast.info(`Transaction hash: ${tx.hash}`);
+
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+
+      // --- Extract Gas Used and Calculate Cost ---
+      if (receipt) {
+        const gasUsed = receipt.gasUsed; // This is a BigInt
+        // effectiveGasPrice is generally what's actually paid for EIP-1559 transactions
+        // For legacy transactions, gasPrice would be available on the receipt
+        // @ts-ignore
+        const effectiveGasPrice = receipt.effectiveGasPrice || receipt.gasPrice;
+
+        let totalCostWei: bigint | null = null;
+        if (effectiveGasPrice) {
+          totalCostWei = gasUsed * effectiveGasPrice;
+        }
+
+        setLastGasUsed(gasUsed.toString()); // Convert BigInt to string for display
+        if (totalCostWei) {
+          // Format total cost to ETH from Wei
+          setLastTransactionCost(ethers.formatEther(totalCostWei));
+        }
+
+        toast.success(successMessage + ` Transaction hash: ${receipt.hash}`);
+      } else {
+        toast.success(successMessage + ` (Receipt not available immediately)`);
+      }
+      return true;
+    } catch (error: any) {
+      console.error("Transaction failed:", error);
+      let errorMessage = "Transaction failed.";
+      if (error.code === 4001) {
+        errorMessage = "Transaction rejected by user.";
+      } else if (error.data && error.data.message) {
+        errorMessage = error.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmAndRegister = async (
+    templeAdminId: string,
+    templeAddressToRegister: string
+  ) => {
     if (!templeAdminId) {
-      await fetchPendingConfirmations(); // Fetch the latest data
       toast.error("Invalid temple admin ID. Please try again.");
       return;
     }
 
+    // Step 1: Check if MetaMask wallet is connected
+    if (!provider || !account) {
+      toast.error("Please connect your MetaMask wallet and try again.");
+      return; // Stop the process if wallet isn't connected
+    }
+
+    // Step 2: Register the temple on the blockchain first
     try {
-      const accessToken = sessionStorage.getItem("accessToken");
-
-      const response = await fetch(
-        "http://localhost:5050/api/v1/superAdmin/confirm-temple-admin-registration",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ templeAdminId }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast.error(
-          result.message || "Failed to confirm registration. Please try again."
-        );
+      if (!ethers.isAddress(templeAddressToRegister)) {
+        toast.error("Invalid temple address to register.");
         return;
       }
 
-      toast.success(
-        "Temple Admin registration confirmed and deployed on blockchain!"
+      const signer = await provider?.getSigner();
+      const registry = new ethers.Contract(
+        TEMPLE_REGISTRY_ADDRESS,
+        TEMPLE_REGISTRY_ABI,
+        signer
       );
-      fetchPendingConfirmations(); // Refresh list of pending confirmations
+
+      // Gas Estimation with buffer
+      const gasLimit = BigInt("300000"); // Or estimatedGas * BigInt(150) / BigInt(100);
+      console.log("Before blockchain transaction");
+      const success = await handleTransaction(
+        registry.registerTemple(templeAddressToRegister, {
+          gasLimit: gasLimit,
+        }), // Blockchain transaction
+        `Temple ${templeAddressToRegister} registered successfully on the blockchain!`
+      );
+      console.log("Transaction status:", success);
+      // Step 3: Proceed to off-chain registration only if blockchain transaction is successful
+      if (success) {
+        console.log("Attempting off-chain registration...");
+        // Now, update the off-chain database
+        const accessToken = sessionStorage.getItem("accessToken");
+
+        const response = await fetch(
+          "http://localhost:5050/api/v1/superAdmin/confirm-temple-admin-registration",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ templeAdminId }),
+          }
+        );
+
+        const result = await response.json();
+        console.log("Database response:", result);
+
+        if (!response.ok) {
+          toast.error(
+            result.message ||
+              "Failed to confirm registration in the database. Please try again."
+          );
+          console.error("Database error response", response.status);
+          return;
+        }
+
+        toast.success("Temple Admin registration confirmed in the database!");
+        setTempleAddressToRegister(""); // Clear input on success
+      }
     } catch (error) {
-      console.error("Confirmation error:", error);
+      console.error(
+        "Error during blockchain registration or admin confirmation:",
+        error
+      );
       toast.error("An error occurred. Please try again.");
     }
   };
@@ -253,13 +362,20 @@ export default function ConfirmPage() {
                               {temple.email}
                             </p>
                             <p>
-                              <span className="font-medium">Wallet Address:</span>{" "}
+                              <span className="font-medium">
+                                Wallet Address:
+                              </span>{" "}
                               {temple.walletAddress}
                             </p>
                           </div>
                           <div className="mt-4 flex space-x-3">
                             <button
-                              onClick={() => handleConfirm(temple._id)}
+                              onClick={() =>
+                                handleConfirmAndRegister(
+                                  temple._id,
+                                  temple.walletAddress
+                                )
+                              }
                               className="mt-4 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center text-sm font-medium"
                             >
                               <Check className="w-4 h-4 mr-2" />

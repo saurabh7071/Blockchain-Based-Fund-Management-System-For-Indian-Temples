@@ -15,6 +15,24 @@ export default function Sidebar() {
   const [activeSection, setActiveSection] = useState('');
   const [isPending, startTransition] = useTransition();
 
+  const [loadingDots, setLoadingDots] = useState('');
+
+useEffect(() => {
+  if (!isPending) {
+    setLoadingDots('');
+    return;
+  }
+
+  const interval = setInterval(() => {
+    setLoadingDots(prev => {
+      if (prev === '...') return '.';
+      return prev + '.';
+    });
+  }, 300);
+
+  return () => clearInterval(interval);
+}, [isPending]);
+
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'register-temple', label: 'Register', icon: UserPlus },
@@ -61,7 +79,7 @@ export default function Sidebar() {
                 >
                   <Icon className="w-5 h-5" />
                   <span>
-                    {item.label} {isPending && isActive && "…"}
+                    {item.label} {isPending && isActive && loadingDots}
                   </span>
                 </button>
               </li>

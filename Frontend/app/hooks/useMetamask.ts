@@ -23,6 +23,10 @@ export const useMetamask = () => {
       const msg = "MetaMask is not installed.";
       setError(msg);
       toast.info(msg);
+
+      // Redirect to MetaMask download page
+      window.open("https://metamask.io/download.html", "_blank");
+
       setLoading(false);
       return null;
     }
@@ -31,10 +35,7 @@ export const useMetamask = () => {
     setProvider(ethProvider);
 
     try {
-      const accounts: string[] = await ethProvider.send(
-        "eth_requestAccounts",
-        []
-      );
+      const accounts: string[] = await ethProvider.send("eth_requestAccounts", []);
       if (accounts.length === 0) {
         const msg = "No accounts found in MetaMask.";
         setError(msg);
@@ -42,7 +43,7 @@ export const useMetamask = () => {
         return null;
       }
 
-      const connectedAccount = accounts[0].toLowerCase(); // ← LOWERCASE
+      const connectedAccount = ethers.getAddress(accounts[0]); // checksummed
       setAccount(connectedAccount);
       localStorage.setItem("connectedAccount", connectedAccount);
 
@@ -98,7 +99,7 @@ export const useMetamask = () => {
       setLoading(false);
     }
   };
-  // Auto-connect if account exists in localStorage or if MetaMask is still connected
+
   useEffect(() => {
     const autoConnect = async () => {
       if (typeof window === "undefined" || !window.ethereum) return;
@@ -108,9 +109,9 @@ export const useMetamask = () => {
 
       const accounts: string[] = await ethProvider.send("eth_accounts", []);
       if (accounts.length > 0) {
-        const normalized = accounts[0].toLowerCase(); // ← LOWERCASE
-        setAccount(normalized);
-        localStorage.setItem("connectedAccount", normalized);
+        const connectedAccount = ethers.getAddress(accounts[0]);
+        setAccount(connectedAccount);
+        localStorage.setItem("connectedAccount", connectedAccount);
       }
     };
 

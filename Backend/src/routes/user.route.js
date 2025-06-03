@@ -30,4 +30,5 @@ router.route("/reset-password").post(resetPasswordWithOtp);
 router.route("/resend-password-reset-otp").post(resendPasswordResetOtp);
 router.route("/current-user").get(verifyJWT, getCurrentUser);
 
+
 export default router

@@ -20,22 +20,21 @@ export const useMetamask = () => {
     setLoading(true);
 
     if (typeof window === "undefined" || !window.ethereum) {
-      const msg = "MetaMask is not installed.";
-      setError(msg);
-      toast.info(msg);
-
-      // Redirect to MetaMask download page
-      window.open("https://metamask.io/download.html", "_blank");
-
-      setLoading(false);
-      return null;
-    }
+  const msg = "MetaMask is not installed.";
+  toast.info(msg);
+  window.open("https://metamask.io/download.html", "_blank");
+  setLoading(false);
+  return null;
+}
 
     const ethProvider = new ethers.BrowserProvider(window.ethereum);
     setProvider(ethProvider);
 
     try {
-      const accounts: string[] = await ethProvider.send("eth_requestAccounts", []);
+      const accounts: string[] = await ethProvider.send(
+        "eth_requestAccounts",
+        []
+      );
       if (accounts.length === 0) {
         const msg = "No accounts found in MetaMask.";
         setError(msg);
@@ -46,6 +45,11 @@ export const useMetamask = () => {
       const connectedAccount = ethers.getAddress(accounts[0]); // checksummed
       setAccount(connectedAccount);
       localStorage.setItem("connectedAccount", connectedAccount);
+
+      if (!sessionStorage.getItem("walletConnectedOnce")) {
+        sessionStorage.setItem("walletConnectedOnce", "true");
+        window.location.reload();
+      }
 
       const { chainId } = await ethProvider.getNetwork();
       if (chainId !== BigInt(80002)) {

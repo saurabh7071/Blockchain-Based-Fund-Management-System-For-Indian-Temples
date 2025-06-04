@@ -11,7 +11,6 @@ import {
     deleteSpecialCeremony,
     addUpcomingEvent,
     deleteUpcomingEvent,
-    getTempleNames
 } from '../controllers/templeDetails.controller.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../middlewares/role.middleware.js';

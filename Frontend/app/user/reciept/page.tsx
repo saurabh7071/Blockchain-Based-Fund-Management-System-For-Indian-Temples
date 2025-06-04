@@ -6,6 +6,7 @@ import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Download, Share2, CheckCircle2, Calendar, Clock, Copy, ExternalLink } from "lucide-react"
 import confetti from "canvas-confetti"
+import jsPDF from "jspdf"
 
 export default function GlobalDonationSuccessPage() {
   const router = useRouter()
@@ -63,6 +64,101 @@ export default function GlobalDonationSuccessPage() {
     setTimeout(() => setShowCopied(false), 2000)
   }
 
+  const downloadReceipt = () => {
+    const doc = new jsPDF()
+
+    // Set up the PDF
+    doc.setFontSize(20)
+    doc.setTextColor(40, 40, 40)
+    doc.text("Donation Receipt", 20, 30)
+
+    // Add a line
+    doc.setLineWidth(0.5)
+    doc.line(20, 35, 190, 35)
+
+    // Receipt details
+    doc.setFontSize(12)
+    doc.setTextColor(60, 60, 60)
+
+    let yPosition = 50
+    const lineHeight = 8
+
+    // Temple Information
+    doc.setFontSize(14)
+    doc.setTextColor(40, 40, 40)
+    doc.text("Temple Information", 20, yPosition)
+    yPosition += lineHeight + 2
+
+    doc.setFontSize(11)
+    doc.setTextColor(80, 80, 80)
+    doc.text(`Temple Name: ${templeName}`, 20, yPosition)
+    yPosition += lineHeight
+
+    if (templeLocation) {
+      doc.text(`Location: ${templeLocation}`, 20, yPosition)
+      yPosition += lineHeight
+    }
+
+    yPosition += 5
+
+    // Donation Details
+    doc.setFontSize(14)
+    doc.setTextColor(40, 40, 40)
+    doc.text("Donation Details", 20, yPosition)
+    yPosition += lineHeight + 2
+
+    doc.setFontSize(11)
+    doc.setTextColor(80, 80, 80)
+    doc.text(`Amount: ₹${amount}`, 20, yPosition)
+    yPosition += lineHeight
+
+    doc.text(`Purpose: ${formattedPurpose}`, 20, yPosition)
+    yPosition += lineHeight
+
+    doc.text(`Transaction ID: ${transactionId}`, 20, yPosition)
+    yPosition += lineHeight
+
+    doc.text(`Date: ${formattedDate}`, 20, yPosition)
+    yPosition += lineHeight
+
+    doc.text(`Time: ${formattedTime}`, 20, yPosition)
+    yPosition += lineHeight
+
+    doc.text("Status: Completed", 20, yPosition)
+    yPosition += lineHeight + 10
+
+    // Tax Information
+    doc.setFontSize(14)
+    doc.setTextColor(40, 40, 40)
+    doc.text("Tax Benefits", 20, yPosition)
+    yPosition += lineHeight + 2
+
+    doc.setFontSize(10)
+    doc.setTextColor(80, 80, 80)
+    const taxText = "Your donation is eligible for tax benefits under Section 80G."
+    const splitTaxText = doc.splitTextToSize(taxText, 170)
+    doc.text(splitTaxText, 20, yPosition)
+    yPosition += lineHeight * splitTaxText.length + 5
+
+    const receiptText = "A tax receipt will be emailed to you within 24 hours."
+    const splitReceiptText = doc.splitTextToSize(receiptText, 170)
+    doc.text(splitReceiptText, 20, yPosition)
+    yPosition += lineHeight * splitReceiptText.length + 15
+
+    // Footer
+    doc.setFontSize(9)
+    doc.setTextColor(120, 120, 120)
+    doc.text("This is a computer-generated receipt.", 20, yPosition)
+    yPosition += lineHeight
+    doc.text("Payment secured by Razorpay", 20, yPosition)
+
+    // Add timestamp
+    doc.text(`Generated on: ${new Date().toLocaleString("en-IN")}`, 20, yPosition + lineHeight)
+
+    // Save the PDF
+    doc.save(`donation-receipt-${transactionId}.pdf`)
+  }
+
   const formattedPurpose =
     purpose === "custom" ? decodeURIComponent(purpose) : purpose.charAt(0).toUpperCase() + purpose.slice(1)
 
@@ -99,7 +195,10 @@ export default function GlobalDonationSuccessPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Donation Receipt</h2>
                 <div className="flex items-center gap-2">
-                  <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors">
+                  <button
+                    onClick={downloadReceipt}
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
+                  >
                     <Download className="h-4 w-4 mr-1" />
                     <span className="hidden sm:inline">Download</span>
                   </button>

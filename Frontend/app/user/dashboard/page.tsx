@@ -52,6 +52,19 @@ const UserDashboard = () => {
     }
   }, [account]);
 
+  useEffect(() => {
+  const storedUserData = localStorage.getItem("user_data");
+  if (storedUserData) {
+    try {
+      const parsedData = JSON.parse(storedUserData);
+      setUserData(parsedData);
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+    }
+  }
+}, []);
+
+
   const slideFade = {
     initial: { opacity: 0, x: -40 },
     animate: { opacity: 1, x: 0 },
@@ -196,7 +209,7 @@ const UserDashboard = () => {
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-orange-500 to-red-500 p-8 rounded-2xl text-white">
-        <h1 className="text-3xl font-bold mb-2">Welcome back, Devotee! 🙏</h1>
+        <h1 className="text-3xl font-bold mb-2">Welcome back, {userData?.name || "Devotee"}! 🙏</h1>
         <p className="text-orange-100 text-lg">
           Your spiritual journey continues with transparent donations
         </p>
@@ -666,10 +679,10 @@ const UserDashboard = () => {
                         <div className="p-4 border-b border-gray-200">
                           <div className="space-y-1 text-sm">
                             <p className="font-semibold text-gray-800">
-                              Admin User
+                              {userData?.name || "Loading..."}
                             </p>
                             <p className="text-gray-600">
-                              admin@fundmanagement.com
+                              {userData?.email || "Loading..."}
                             </p>
                           </div>
                         </div>

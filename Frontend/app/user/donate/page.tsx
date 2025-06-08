@@ -39,13 +39,6 @@ const UnifiedTempleDonationPage = () => {
       );
 
       const result = await response.json();
-      console.log("Fetched active temple admins:", result);
-
-      if (!response.ok) {
-        console.error("Error fetching active temple admins:", result.message);
-        setTemples([]);
-        return;
-      }
 
       setTemples(result.data.data);
     } catch (error) {

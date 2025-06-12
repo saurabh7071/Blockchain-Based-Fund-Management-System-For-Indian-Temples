@@ -5,6 +5,8 @@ import { useMetamask } from "@/app/hooks/useMetamask";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/app/components/LogoutButton";
 import AuthWrapper from "@/app/components/AuthWrapper";
+import { toast } from "react-toastify"
+import Link from "next/link"
 
 import {
   Home,
@@ -30,7 +32,9 @@ import {
   Star,
   Award,
   Clock,
-  CheckCircle
+  CheckCircle,
+  ArrowRight,
+  HandHeart
 } from 'lucide-react';
 
 const UserDashboard = () => {
@@ -40,6 +44,7 @@ const UserDashboard = () => {
   const [showConnectedButton, setShowConnectedButton] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [recentDonations, setRecentDonations] = useState([]);
 
   useEffect(() => {
     if (account) {
@@ -53,16 +58,41 @@ const UserDashboard = () => {
   }, [account]);
 
   useEffect(() => {
-  const storedUserData = localStorage.getItem("user_data");
-  if (storedUserData) {
-    try {
-      const parsedData = JSON.parse(storedUserData);
-      setUserData(parsedData);
-    } catch (error) {
-      console.error("Error parsing user data:", error);
+    const storedUserData = localStorage.getItem("user_data");
+    if (storedUserData) {
+      try {
+        const parsedData = JSON.parse(storedUserData);
+        setUserData(parsedData);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
     }
-  }
-}, []);
+  }, []);
+
+  useEffect(() => {
+    console.log("Donations:", recentDonations);
+    const fetchMyDonations = async () => {
+      const accessToken = sessionStorage.getItem("accessToken");
+      try {
+        const response = await fetch("http://localhost:5050/api/v1/transactions/my-donations", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          setRecentDonations(result.data);
+        } else {
+          toast.error(result.message || "Could not fetch donations.");
+        }
+      } catch (error) {
+        console.error("Failed to fetch donations:", error);
+      }
+    };
+
+    fetchMyDonations();
+  }, []);
 
 
   const slideFade = {
@@ -89,39 +119,6 @@ const UserDashboard = () => {
   };
 
   const [userData, setUserData] = useState<any>(null);
-
-  const recentDonations = [
-    {
-      id: 1,
-      temple: "Tirumala Venkateswara Temple",
-      amount: 5000,
-      date: "2025-05-25",
-      status: "completed",
-      purpose: "Annadanam",
-      location: "Tirupati, Andhra Pradesh",
-      txHash: "0x1234...abcd",
-    },
-    {
-      id: 2,
-      temple: "Meenakshi Amman Temple",
-      amount: 2500,
-      date: "2025-05-20",
-      status: "completed",
-      purpose: "Temple Maintenance",
-      location: "Madurai, Tamil Nadu",
-      txHash: "0x5678...efgh",
-    },
-    {
-      id: 3,
-      temple: "Golden Temple",
-      amount: 10000,
-      date: "2025-05-15",
-      status: "in-progress",
-      purpose: "Langar Seva",
-      location: "Amritsar, Punjab",
-      txHash: "0x9012...ijkl",
-    },
-  ];
 
   const favoriteTemples = [
     {
@@ -170,11 +167,10 @@ const UserDashboard = () => {
   const MenuItem = ({ icon: Icon, label, id, active, onClick }) => (
     <button
       onClick={() => onClick(id)}
-      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all cursor-pointer ${
-        active
-          ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg"
-          : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
-      }`}
+      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all cursor-pointer ${active
+        ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg"
+        : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+        }`}
     >
       <Icon size={20} />
       <span className="font-medium">{label}</span>
@@ -191,9 +187,8 @@ const UserDashboard = () => {
         </div>
         {change && (
           <span
-            className={`text-sm font-semibold ${
-              change > 0 ? "text-green-600" : "text-red-600"
-            }`}
+            className={`text-sm font-semibold ${change > 0 ? "text-green-600" : "text-red-600"
+              }`}
           >
             {change > 0 ? "+" : ""}
             {change}%
@@ -281,48 +276,74 @@ const UserDashboard = () => {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Recent Donations */}
         <div className="bg-white p-6 rounded-2xl shadow-lg">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">
-            Recent Donations
-          </h2>
-          <div className="space-y-4">
-            {recentDonations.slice(0, 3).map((donation) => (
-              <div
-                key={donation.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-                    <Home className="text-white" size={16} />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-800 text-sm">
-                      {donation.temple}
-                    </p>
-                    <p className="text-gray-600 text-xs">{donation.purpose}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-gray-800">
-                    ₹{donation.amount.toLocaleString()}
-                  </p>
-                  <span
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      donation.status === "completed"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
+          <h2 className="text-xl font-bold mb-4 text-gray-800">Recent Donations</h2>
+
+          {recentDonations && recentDonations.length > 0 ? (
+            <>
+              <div className="space-y-4">
+                {recentDonations.slice(0, 5).map((donation, index) => (
+                  <div
+                    key={donation.txHash || donation._id || index}
+                    className="p-4 rounded-xl hover:bg-gray-50 transition-colors"
                   >
-                    {donation.status === "completed" ? (
-                      <CheckCircle size={12} className="mr-1" />
-                    ) : (
-                      <Clock size={12} className="mr-1" />
-                    )}
-                    {donation.status}
-                  </span>
-                </div>
+                    <div className="flex justify-between items-center">
+                      {/* Left side */}
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                          <Home className="text-white" size={16} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-800 text-sm">
+                            {donation.receiver?.templeName || "Temple N/A"}
+                          </p>
+                          <p className="text-gray-600 text-xs">{donation.purpose}</p>
+                        </div>
+                      </div>
+
+                      {/* Right side */}
+                      <div className="text-right">
+                        <p className="font-bold text-gray-800 text-sm">
+                          {donation.amount} MATIC
+                        </p>
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${donation.status === "confirmed"
+                            ? "bg-green-100 text-green-800"
+                            : donation.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                            }`}
+                        >
+                          {donation.status === "confirmed" ? (
+                            <CheckCircle size={12} className="mr-1" />
+                          ) : donation.status === "pending" ? (
+                            <Clock size={12} className="mr-1" />
+                          ) : (
+                            <XCircle size={12} className="mr-1" />
+                          )}
+                          {donation.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              {/* View More */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setActiveTab("donations")}
+                  className="text-sm font-medium text-orange-600 hover:text-orange-800 flex items-center focus:outline-none"
+                >
+                  View More <ArrowRight className="ml-1" size={16} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center text-gray-600 p-6">
+              <HandHeart className="mx-auto mb-2 text-orange-500" size={32} />
+              <p className="text-sm">No donations have been made yet.</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -340,11 +361,10 @@ const UserDashboard = () => {
                   <p className="text-sm text-gray-600">{report.temple}</p>
                 </div>
                 <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    report.status === "completed"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-blue-100 text-blue-800"
-                  }`}
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${report.status === "completed"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-blue-100 text-blue-800"
+                    }`}
                 >
                   {report.status}
                 </span>
@@ -402,71 +422,83 @@ const UserDashboard = () => {
 
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Donation History
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-800">Donation History</h2>
         </div>
-        <div className="divide-y divide-gray-200">
-          {recentDonations.map((donation) => (
-            <div
-              key={donation.id}
-              className="p-6 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-                    <Home className="text-white" size={20} />
+
+        {recentDonations && recentDonations.length > 0 ? (
+          <div className="divide-y divide-gray-200">
+            {recentDonations.map((donation, index) => (
+              <div
+                key={donation.txHash || donation._id || index}
+                className="p-6 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                      <Home className="text-white" size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-800">
+                        {donation.receiver?.templeName || "Temple N/A"}
+                      </h3>
+                      <p className="text-sm text-gray-600 flex items-center mt-1">
+                        <MapPin size={14} className="mr-1" />
+                        {donation.receiver?.templeLocation || "Location N/A"}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Purpose: {donation.purpose}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800">
-                      {donation.temple}
-                    </h3>
-                    <p className="text-sm text-gray-600 flex items-center mt-1">
-                      <MapPin size={14} className="mr-1" />
-                      {donation.location}
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-gray-800">
+                      {donation.amount} MATIC
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Purpose: {donation.purpose}
-                    </p>
+                    <p className="text-sm text-gray-600">{donation.date}</p>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-2 ${donation.status === "confirmed"
+                          ? "bg-green-100 text-green-800"
+                          : donation.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                    >
+                      {donation.status === "confirmed" ? (
+                        <CheckCircle size={12} className="mr-1" />
+                      ) : donation.status === "pending" ? (
+                        <Clock size={12} className="mr-1" />
+                      ) : (
+                        <XCircle size={12} className="mr-1" />
+                      )}
+                      {donation.status}
+                    </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-gray-800">
-                    ₹{donation.amount.toLocaleString()}
+                <div className="mt-4 flex justify-between items-center">
+                  <p className="text-xs text-gray-500">
+                    Tx Hash: {donation.txHash.slice(0, 6)}...{donation.txHash.slice(-4)}
                   </p>
-                  <p className="text-sm text-gray-600">{donation.date}</p>
-                  <span
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-2 ${
-                      donation.status === "completed"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {donation.status === "completed" ? (
-                      <CheckCircle size={12} className="mr-1" />
-                    ) : (
-                      <Clock size={12} className="mr-1" />
-                    )}
-                    {donation.status}
-                  </span>
+
+                  <div className="flex space-x-2">
+                    <button className="flex items-center text-white bg-orange-500 hover:bg-orange-600 px-3 py-1 rounded text-sm font-medium transition">
+                      <Eye size={14} className="mr-1" /> View Details
+                    </button>
+
+                    <button className="text-white bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm font-medium transition">
+                      Download Receipt
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="mt-4 flex justify-between items-center">
-                <p className="text-xs text-gray-500">
-                  Tx Hash: {donation.txHash}
-                </p>
-                <div className="flex space-x-2">
-                  <button className="text-orange-600 hover:text-orange-800 text-sm font-medium">
-                    View Details
-                  </button>
-                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                    Download Receipt
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-10 text-center text-gray-500">
+            <HandHeart className="mx-auto text-orange-500 mb-4" size={40} />
+            <p className="text-lg font-medium">No donations found.</p>
+            <p className="text-sm text-gray-400">You haven’t made any donations yet.</p>
+          </div>
+        )}
       </div>
     </div>
   );

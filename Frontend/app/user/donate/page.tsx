@@ -53,131 +53,163 @@ const UnifiedTempleDonationPage = () => {
   }, []);
 
   const handleTransaction = async (
-  contractCall: Promise<ethers.TransactionResponse>,
-  successMessage: string
-) => {
-  setLoading(true);
-  setLastGasUsed(null);
-  setLastTransactionCost(null);
+    contractCall: Promise<ethers.TransactionResponse>,
+    successMessage: string
+  ) => {
+    setLoading(true);
+    setLastGasUsed(null);
+    setLastTransactionCost(null);
 
-  try {
-    toast.info("📤 Transaction sent to the network...");
-    const tx = await contractCall;
-    console.log("Transaction hash:", tx.hash);
-    toast.info(`📨 Transaction hash: ${tx.hash}`);
+    try {
+      toast.info("📤 Transaction sent to the network...");
+      const tx = await contractCall;
+      console.log("Transaction hash:", tx.hash);
+      toast.info(`📨 Transaction hash: ${tx.hash}`);
 
-    // Show a persistent toast until confirmation
-    const waitingToastId = toast.loading("⏳ Waiting for confirmation...");
+      // Show a persistent toast until confirmation
+      const waitingToastId = toast.loading("⏳ Waiting for confirmation...");
 
-    const receipt = await tx.wait();
-    console.log("Transaction confirmed:", receipt);
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
 
-    // Dismiss the waiting toast
-    toast.dismiss(waitingToastId);
+      // Dismiss the waiting toast
+      toast.dismiss(waitingToastId);
 
-    if (receipt) {
-      const gasUsed = receipt.gasUsed;
-      // @ts-ignore
-      const effectiveGasPrice = receipt.effectiveGasPrice || receipt.gasPrice;
+      if (receipt) {
+        const gasUsed = receipt.gasUsed;
+        // @ts-ignore
+        const effectiveGasPrice = receipt.effectiveGasPrice || receipt.gasPrice;
 
-      let totalCostWei: bigint | null = null;
-      if (effectiveGasPrice) {
-        totalCostWei = gasUsed * effectiveGasPrice;
+        let totalCostWei: bigint | null = null;
+        if (effectiveGasPrice) {
+          totalCostWei = gasUsed * effectiveGasPrice;
+        }
+
+        setLastGasUsed(gasUsed.toString());
+        if (totalCostWei) {
+          setLastTransactionCost(ethers.formatEther(totalCostWei));
+        }
+
+        const payload = {
+          amount: Number(donationAmount),
+          txHash: tx.hash,
+          gasPrice: Number(effectiveGasPrice.toString()),       // ✅ CONVERTED
+          transactionFee: Number(totalCostWei.toString()),
+          purpose: donationPurpose,
+          status: "confirmed",
+        };
+
+        const accessToken = sessionStorage.getItem("accessToken");
+        if (!accessToken) {
+          throw new Error("Access token not found. Please log in again.");
+        }
+        console.log("Token being sent:", accessToken);
+        const response = await fetch("http://localhost:5050/api/v1/transactions/donate-to-temple", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await response.json();
+        console.log("Donation result:", result);
+
+        if (response.ok) {
+          toast.success("🎉 Donation saved in database");
+        } else {
+          toast.error(`DB Error: ${result?.message || "Failed to save transaction"}`);
+        }
+
+        toast.success(`✅ ${successMessage}`);
+        toast.success(`🔗 View on explorer: ${receipt.hash}`);
+      } else {
+        toast.success(successMessage + ` (Receipt not immediately available)`);
       }
 
-      setLastGasUsed(gasUsed.toString());
-      if (totalCostWei) {
-        setLastTransactionCost(ethers.formatEther(totalCostWei));
+      return true;
+    } catch (error: any) {
+      console.error("Transaction failed:", error);
+      let errorMessage = "❌ Transaction failed.";
+      if (error.code === 4001) {
+        errorMessage = "🚫 Transaction rejected by user.";
+      } else if (error.data && error.data.message) {
+        errorMessage = error.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-
-      toast.success(`✅ ${successMessage}`);
-      toast.success(`🔗 View on explorer: ${receipt.hash}`);
-    } else {
-      toast.success(successMessage + ` (Receipt not immediately available)`);
+      toast.error(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
     }
-
-    return true;
-  } catch (error: any) {
-    console.error("Transaction failed:", error);
-    let errorMessage = "❌ Transaction failed.";
-    if (error.code === 4001) {
-      errorMessage = "🚫 Transaction rejected by user.";
-    } else if (error.data && error.data.message) {
-      errorMessage = error.data.message;
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    toast.error(errorMessage);
-    return false;
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
   const donateEth = async (templeAddress: string) => {
-  if (!provider || !account) {
-    toast.error("Connect wallet first");
-    return;
-  }
-  if (!ethers.isAddress(templeAddress)) {
-    toast.error("Invalid temple address");
-    return;
-  }
-
-  try {
-    const signer = await provider.getSigner();
-    const templeFund = new ethers.Contract(
-      TEMPLE_FUND_ADDRESS,
-      TEMPLE_FUND_ABI,
-      signer
-    );
-
-    const amountInEth = donationAmount;
-    if (!amountInEth || isNaN(Number(amountInEth)) || Number(amountInEth) <= 0) {
-      toast.error("Invalid donation amount");
+    if (!provider || !account) {
+      toast.error("Connect wallet first");
+      return;
+    }
+    if (!ethers.isAddress(templeAddress)) {
+      toast.error("Invalid temple address");
       return;
     }
 
-    toast.info(`🚀 Initiating donation of ${amountInEth} ETH...`);
+    try {
+      const signer = await provider.getSigner();
+      const templeFund = new ethers.Contract(
+        TEMPLE_FUND_ADDRESS,
+        TEMPLE_FUND_ABI,
+        signer
+      );
 
-    const success = await handleTransaction(
-      templeFund.donateEthToTemple(templeAddress, {
-        value: ethers.parseEther(amountInEth),
-      }),
-      "Donation successful!"
-    );
+      const amountInEth = donationAmount;
+      if (!amountInEth || isNaN(Number(amountInEth)) || Number(amountInEth) <= 0) {
+        toast.error("Invalid donation amount");
+        return;
+      }
 
-    if (success) {
-      fetchEthBalance(templeAddress);
+      toast.info(`🚀 Initiating donation of ${amountInEth} ETH...`);
+
+      const success = await handleTransaction(
+        templeFund.donateEthToTemple(templeAddress, {
+          value: ethers.parseEther(amountInEth),
+        }),
+        "Donation successful!"
+      );
+
+      if (success) {
+        fetchEthBalance(templeAddress);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Donation failed");
     }
-  } catch (error) {
-    console.error(error);
-    toast.error("Donation failed");
-  }
-};
+  };
 
 
   const fetchEthBalance = async (templeAddr: string) => {
-      if (!provider || !ethers.isAddress(templeAddr)) {
-        toast.error("Invalid temple address or wallet not connected.");
-        return;
-      }
-      try {
-        const templeFund = new ethers.Contract(
-          TEMPLE_FUND_ADDRESS,
-          TEMPLE_FUND_ABI,
-          provider
-        );
-        const balance = await templeFund.getTempleEthBalance(templeAddr);
-        setEthBalance(ethers.formatEther(balance));
-      } catch (error) {
-        toast.error("Failed to fetch ETH balance.");
-        console.error(error);
-      }
-    };
-    
-    const purposes = [
+    if (!provider || !ethers.isAddress(templeAddr)) {
+      toast.error("Invalid temple address or wallet not connected.");
+      return;
+    }
+    try {
+      const templeFund = new ethers.Contract(
+        TEMPLE_FUND_ADDRESS,
+        TEMPLE_FUND_ABI,
+        provider
+      );
+      const balance = await templeFund.getTempleEthBalance(templeAddr);
+      setEthBalance(ethers.formatEther(balance));
+    } catch (error) {
+      toast.error("Failed to fetch ETH balance.");
+      console.error(error);
+    }
+  };
+
+  const purposes = [
     "General Fund",
     "Prasadam Distribution",
     "Temple Maintenance",
@@ -185,7 +217,7 @@ const UnifiedTempleDonationPage = () => {
     "Educational Programs",
     "Community Kitchen",
   ];
-      const handleDonate = () => {
+  const handleDonate = () => {
     if (
       !donationAmount ||
       !selectedTemple ||
@@ -489,8 +521,8 @@ const UnifiedTempleDonationPage = () => {
                                   <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <circle cx="24" cy="24" r="24" fill="#F59E0B"/>
                                     <text x="24" y="30" text-anchor="middle" fill="white" font-size="16" font-weight="bold">${crypto.symbol.charAt(
-                                      0
-                                    )}</text>
+                                  0
+                                )}</text>
                                   </svg>
                                 `)}`;
                               }}
@@ -516,11 +548,10 @@ const UnifiedTempleDonationPage = () => {
                                 <TrendingDown className="w-4 h-4 text-red-500" />
                               )}
                               <span
-                                className={`font-semibold text-sm ${
-                                  crypto.price_change_percentage_24h >= 0
-                                    ? "text-green-500"
-                                    : "text-red-500"
-                                }`}
+                                className={`font-semibold text-sm ${crypto.price_change_percentage_24h >= 0
+                                  ? "text-green-500"
+                                  : "text-red-500"
+                                  }`}
                               >
                                 {Math.abs(
                                   crypto.price_change_percentage_24h || 0
@@ -638,11 +669,10 @@ const UnifiedTempleDonationPage = () => {
                               ${formatPrice(cryptoPrices[selectedCrypto].price)}
                             </span>
                             <div
-                              className={`text-xs ml-2 inline-block ${
-                                cryptoPrices[selectedCrypto].change >= 0
-                                  ? "text-green-500"
-                                  : "text-red-500"
-                              }`}
+                              className={`text-xs ml-2 inline-block ${cryptoPrices[selectedCrypto].change >= 0
+                                ? "text-green-500"
+                                : "text-red-500"
+                                }`}
                             >
                               {cryptoPrices[selectedCrypto].change >= 0
                                 ? "+"

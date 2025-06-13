@@ -12,13 +12,15 @@ const donateToTemple = asyncHandler(async (req, res) => {
         transactionFee,
         purpose,
         status,
+        templeWalletAddress
     } = req.body;
-
-    console.log(req.body);
-
 
     if (!amount || !txHash || !gasPrice || !transactionFee || !purpose || !status) {
         throw new ApiError(400, "All fields are required");
+    }
+
+    if (!templeWalletAddress) {
+        throw new ApiError(400, "Temple wallet address is required.");
     }
 
     // Validate amount
@@ -55,6 +57,7 @@ const donateToTemple = asyncHandler(async (req, res) => {
     }
 
     const templeAdmin = await User.findOne({
+        walletAddress: templeWalletAddress.toLowerCase(),
         role: "templeAdmin",
         status: "active",
     });
@@ -101,6 +104,10 @@ const donationHistory = asyncHandler(async (req, res) => {
             .populate({
                 path: "receiver",
                 select: "templeName templeLocation",
+            })
+            .populate({
+                path: "sender",
+                select: "walletAddress",
             })
             .sort({ createdAt: -1 }); // optional: latest first
 

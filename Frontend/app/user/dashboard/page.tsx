@@ -45,6 +45,9 @@ const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [recentDonations, setRecentDonations] = useState([]);
+  const [selectedDonation, setSelectedDonation] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
 
   useEffect(() => {
     if (account) {
@@ -70,7 +73,6 @@ const UserDashboard = () => {
   }, []);
 
   useEffect(() => {
-    console.log("Donations:", recentDonations);
     const fetchMyDonations = async () => {
       const accessToken = sessionStorage.getItem("accessToken");
       try {
@@ -281,7 +283,7 @@ const UserDashboard = () => {
           {recentDonations && recentDonations.length > 0 ? (
             <>
               <div className="space-y-4">
-                {recentDonations.slice(0, 5).map((donation, index) => (
+                {recentDonations.slice(0, 4).map((donation, index) => (
                   <div
                     key={donation.txHash || donation._id || index}
                     className="p-4 rounded-xl hover:bg-gray-50 transition-colors"
@@ -457,10 +459,10 @@ const UserDashboard = () => {
                     <p className="text-sm text-gray-600">{donation.date}</p>
                     <span
                       className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-2 ${donation.status === "confirmed"
-                          ? "bg-green-100 text-green-800"
-                          : donation.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
+                        ? "bg-green-100 text-green-800"
+                        : donation.status === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
                         }`}
                     >
                       {donation.status === "confirmed" ? (
@@ -480,7 +482,12 @@ const UserDashboard = () => {
                   </p>
 
                   <div className="flex space-x-2">
-                    <button className="flex items-center text-white bg-orange-500 hover:bg-orange-600 px-3 py-1 rounded text-sm font-medium transition">
+                    <button
+                      onClick={() => {
+                        setSelectedDonation(donation);
+                        setShowDetailsModal(true);
+                      }}
+                      className="flex items-center text-white bg-orange-500 hover:bg-orange-600 px-3 py-1 rounded text-sm font-medium transition">
                       <Eye size={14} className="mr-1" /> View Details
                     </button>
 
@@ -491,6 +498,32 @@ const UserDashboard = () => {
                 </div>
               </div>
             ))}
+
+            {showDetailsModal && selectedDonation && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-xl shadow-xl relative">
+                  <button
+                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowDetailsModal(false)}
+                  >
+                    ✕
+                  </button>
+                  <h2 className="text-xl font-bold mb-4 text-gray-800">Donation Details</h2>
+                  <div className="space-y-3 text-sm text-gray-700">
+                    <p><strong>Temple Name:</strong> {selectedDonation.receiver?.templeName || "N/A"}</p>
+                    <p><strong>Location:</strong> {selectedDonation.receiver?.templeLocation || "N/A"}</p>
+                    <p><strong>Purpose:</strong> {selectedDonation.purpose}</p>
+                    <p><strong>Amount:</strong> {selectedDonation.amount} MATIC</p>
+                    <p><strong>Date:</strong> {new Date(selectedDonation.createdAt).toLocaleString() || "N/A"}</p>
+                    <p><strong>Status:</strong> {selectedDonation.status}</p>
+                    <p><strong>Transaction Hash:</strong> {selectedDonation.txHash}</p>
+                    <p><strong>Sender Wallet: </strong>{selectedDonation.sender?.walletAddress || "N/A"}</p>
+                    {/* Add more fields if needed */}
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         ) : (
           <div className="p-10 text-center text-gray-500">
@@ -502,6 +535,7 @@ const UserDashboard = () => {
       </div>
     </div>
   );
+
 
   const renderAnalytics = () => (
     <div className="space-y-6">

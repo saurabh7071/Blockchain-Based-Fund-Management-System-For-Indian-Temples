@@ -12,7 +12,8 @@ import { toast } from "react-toastify";
 const UnifiedTempleDonationPage = () => {
   // Donation form state
   const [donationAmount, setDonationAmount] = useState("");
-  const [selectedTemple, setSelectedTemple] = useState("");
+  // const [selectedTemple, setSelectedTemple] = useState("");
+  const [selectedTemple, setSelectedTemple] = useState(null);
   const [donationPurpose, setDonationPurpose] = useState("");
   const [selectedCrypto, setSelectedCrypto] = useState("bitcoin");
   const [temples, setTemples] = useState([]);
@@ -93,17 +94,22 @@ const UnifiedTempleDonationPage = () => {
         const payload = {
           amount: Number(donationAmount),
           txHash: tx.hash,
-          gasPrice: Number(effectiveGasPrice.toString()),       // ✅ CONVERTED
+          gasPrice: Number(effectiveGasPrice.toString()),
           transactionFee: Number(totalCostWei.toString()),
           purpose: donationPurpose,
           status: "confirmed",
+          templeWalletAddress: selectedTemple?.walletAddress,
         };
+
+        if (!selectedTemple?.walletAddress) {
+          toast.error("Please select a valid temple.");
+          return;
+        }
 
         const accessToken = sessionStorage.getItem("accessToken");
         if (!accessToken) {
           throw new Error("Access token not found. Please log in again.");
         }
-        console.log("Token being sent:", accessToken);
         const response = await fetch("http://localhost:5050/api/v1/transactions/donate-to-temple", {
           method: "POST",
           headers: {
@@ -114,7 +120,6 @@ const UnifiedTempleDonationPage = () => {
         });
 
         const result = await response.json();
-        console.log("Donation result:", result);
 
         if (response.ok) {
           toast.success("🎉 Donation saved in database");
@@ -227,10 +232,12 @@ const UnifiedTempleDonationPage = () => {
       toast.error("Please fill all fields");
       return;
     }
-    const getTempleAddressByName = (name: string) => {
-      const temple = temples.find((t) => t.templeName === name);
-      return temple ? temple.walletAddress : null;
-    };
+
+    const templeAddress = selectedTemple.walletAddress;
+    if (!templeAddress) {
+    toast.error("Temple wallet address not found.");
+    return;
+  }
 
     const cryptoInfo = {
       bitcoin: "BTC",
@@ -245,13 +252,6 @@ const UnifiedTempleDonationPage = () => {
     const usdValue = (parseFloat(donationAmount) * selectedCryptoPrice).toFixed(
       2
     );
-
-    const templeAddress = getTempleAddressByName(selectedTemple);
-
-    if (!templeAddress) {
-      toast.error("Temple wallet address not found.");
-      return;
-    }
 
     if (selectedCrypto === "ethereum" || selectedCrypto === "polygon") {
       // assuming same contract for both ETH & MATIC (since both EVM chains)
@@ -605,18 +605,22 @@ const UnifiedTempleDonationPage = () => {
                       Select Temple
                     </label>
                     <select
-                      value={selectedTemple}
-                      onChange={(e) => setSelectedTemple(e.target.value)}
+                      value={selectedTemple?.templeName || ""}
+                      onChange={(e) => {
+                        const selected = temples.find(t => t.templeName === e.target.value);
+                        setSelectedTemple(selected || null);
+                      }}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                       required
                     >
                       <option value="">Choose a temple...</option>
-                      {temples.map((temple, index) => (
-                        <option key={index} value={temple.templeName}>
+                      {temples.map((temple) => (
+                        <option key={temple.walletAddress} value={temple.templeName}>
                           {temple.templeName}
                         </option>
                       ))}
                     </select>
+
                   </div>
 
                   {/* Purpose Selection */}

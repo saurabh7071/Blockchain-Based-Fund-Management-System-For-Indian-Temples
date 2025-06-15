@@ -163,7 +163,7 @@ const UnifiedTempleDonationPage = () => {
     }
 
     try {
-      const signer = await provider.getSigner();
+      const signer = await provider?.getSigner();
       const templeFund = new ethers.Contract(
         TEMPLE_FUND_ADDRESS,
         TEMPLE_FUND_ABI,

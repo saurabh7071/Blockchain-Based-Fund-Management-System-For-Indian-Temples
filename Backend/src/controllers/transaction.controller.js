@@ -123,7 +123,75 @@ const donationHistory = asyncHandler(async (req, res) => {
     }
 })
 
+const generateTempleReport = asyncHandler(async (req, res) => {
+    const templeId = req.user._id;
+    const { type } = req.query; // type = 'weekly' | 'monthly'
+
+    if (!templeId || !['weekly', 'monthly'].includes(type)) {
+        throw new ApiError(400, "Invalid temple ID or type");
+    }
+
+    const endDate = new Date();
+    let startDate = new Date();
+
+    if (type === 'weekly') {
+        startDate.setDate(endDate.getDate() - 7);
+    } else if (type === 'monthly') {
+        startDate.setMonth(endDate.getMonth() - 1);
+    }
+
+    const reportData = await Transaction.find({
+        receiver: templeId,
+        transactionType: "transfer",
+        createdAt: { $gte: startDate, $lte: endDate }
+    }).sort({ createdAt: -1 })
+        .populate({
+            path: "receiver",
+            select: "templeName templeLocation _id"
+        });
+
+    const totalAmount = reportData.reduce((sum, txn) => sum + txn.amount, 0);
+    const templeInfo = reportData[0]?.receiver || null;
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {
+            report: reportData,
+            templeInfo,
+            totalTransactions: reportData.length,
+            totalAmountDonated: totalAmount
+        }, `${type} report generated`));
+});
+
+const templeDonations = asyncHandler(async (req, res) => {
+    const templeId = req.user._id;
+
+    if (!templeId) {
+        throw new ApiError(400, "Temple ID is missing");
+    }
+
+    const donations = await Transaction.find({
+        receiver: templeId,
+        transactionType: "transfer"
+    })
+        .populate({
+            path: "sender",
+            select: "name walletAddress",
+        })
+        .sort({ createdAt: -1 });
+
+    return res.status(200).json(new ApiResponse(
+        200,
+        donations,
+        "Donations received by temple fetched successfully"
+    ));
+});
+
+
+
 export {
     donateToTemple,
-    donationHistory
+    donationHistory,
+    generateTempleReport,
+    templeDonations
 }

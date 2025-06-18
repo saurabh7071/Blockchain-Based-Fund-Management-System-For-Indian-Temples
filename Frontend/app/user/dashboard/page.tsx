@@ -34,7 +34,8 @@ import {
   Clock,
   CheckCircle,
   ArrowRight,
-  HandHeart
+  HandHeart,
+  ExternalLink
 } from 'lucide-react';
 
 const UserDashboard = () => {
@@ -479,6 +480,15 @@ const UserDashboard = () => {
                 <div className="mt-4 flex justify-between items-center">
                   <p className="text-xs text-gray-500">
                     Tx Hash: {donation.txHash.slice(0, 6)}...{donation.txHash.slice(-4)}
+                    <button
+                      onClick={() =>
+                        window.open(`https://www.oklink.com/amoy/tx/${donation.txHash}`, "_blank")
+                      }
+                      className="text-orange-500 hover:text-orange-600 transition"
+                      title="View on Amoy Explorer"
+                    >
+                      <ExternalLink size={14} />
+                    </button>
                   </p>
 
                   <div className="flex space-x-2">

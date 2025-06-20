@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import LogoutButton from "@/app/components/LogoutButton";
 import AuthWrapper from "@/app/components/AuthWrapper";
 import { toast } from "react-toastify"
-import Link from "next/link"
 
 import {
   Home,
@@ -42,13 +41,17 @@ const UserDashboard = () => {
   const router = useRouter();
   const { account, connectWallet, loading } = useMetamask();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
   const [showConnectedButton, setShowConnectedButton] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [recentDonations, setRecentDonations] = useState([]);
   const [selectedDonation, setSelectedDonation] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-
+  const [verifiedCount, setVerifiedCount] = useState(0);
+  const [userTotalDonations, setUserTotalDonations] = useState(0);
+  const [maticToInr, setMaticToInr] = useState(0);
+  const [monthlyDonationStats, setMonthlyDonationStats] = useState(0);
 
   useEffect(() => {
     if (account) {
@@ -62,6 +65,45 @@ const UserDashboard = () => {
   }, [account]);
 
   useEffect(() => {
+    const fetchUserTotalDonations = async () => {
+      const token = sessionStorage.getItem("accessToken");
+      if (!token) return;
+
+      try {
+        const res = await fetch("http://localhost:5050/api/v1/transactions/total-donation-done", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          setUserTotalDonations(data.data.totalMATIC);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user's donation total:", err);
+      }
+    };
+
+    fetchUserTotalDonations();
+  }, []);
+
+  useEffect(() => {
+    const fetchMaticToINR = async () => {
+      try {
+        const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=inr");
+        const data = await res.json();
+        setMaticToInr(data["matic-network"]?.inr || 0);
+      } catch (error) {
+        console.error("Error fetching MATIC to INR:", error);
+        setMaticToInr(90); // fallback
+      }
+    };
+
+    fetchMaticToINR();
+  }, []);
+
+  useEffect(() => {
     const storedUserData = localStorage.getItem("user_data");
     if (storedUserData) {
       try {
@@ -71,6 +113,20 @@ const UserDashboard = () => {
         console.error("Error parsing user data:", error);
       }
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchVerifiedCount = async () => {
+      try {
+        const response = await fetch("http://localhost:5050/api/v1/superAdminDashboard/count-temple-admins");
+        const result = await response.json();
+        setVerifiedCount(result.data.verifiedCount || 0);
+      } catch (error) {
+        console.error("Error fetching verified temple count:", error);
+      }
+    };
+
+    fetchVerifiedCount();
   }, []);
 
   useEffect(() => {
@@ -97,12 +153,27 @@ const UserDashboard = () => {
     fetchMyDonations();
   }, []);
 
+  useEffect(() => {
+    const fetchMonthlyDonations = async () => {
+      try {
+        const token = sessionStorage.getItem("accessToken");
+        const res = await fetch("http://localhost:5050/api/v1/transactions/temple-donated-amount", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-  const slideFade = {
-    initial: { opacity: 0, x: -40 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -40 },
-  };
+        const data = await res.json();
+        setMonthlyDonationStats(data.data?.totalMonthlyMATIC || 0);
+      } catch (error) {
+        console.error("Failed to fetch monthly donations:", error);
+      }
+    };
+
+    fetchMonthlyDonations();
+  }, []);
+
+
 
   const fadeIn = {
     initial: { opacity: 0, y: -10 },
@@ -120,35 +191,6 @@ const UserDashboard = () => {
   const handleChangePassword = () => {
     alert("Change password functionality");
   };
-
-  const [userData, setUserData] = useState<any>(null);
-
-  const favoriteTemples = [
-    {
-      id: 1,
-      name: "Tirumala Venkateswara Temple",
-      location: "Tirupati, AP",
-      image: "🏛️",
-      totalDonated: 45000,
-      lastDonation: "2025-05-25",
-    },
-    {
-      id: 2,
-      name: "Meenakshi Amman Temple",
-      location: "Madurai, TN",
-      image: "🕌",
-      totalDonated: 25000,
-      lastDonation: "2025-05-20",
-    },
-    {
-      id: 3,
-      name: "Shirdi Sai Baba Temple",
-      location: "Shirdi, MH",
-      image: "⛩️",
-      totalDonated: 30000,
-      lastDonation: "2025-05-10",
-    },
-  ];
 
   const impactReports = [
     {
@@ -218,20 +260,29 @@ const UserDashboard = () => {
         <StatCard
           icon={IndianRupee}
           title="Total Donated"
-          value={`₹${donationStats.totalDonated.toLocaleString()}`}
+          value={
+            userTotalDonations !== null && monthlyDonationStats !== undefined
+              ? `${userTotalDonations.toLocaleString()} MATIC (₹${(userTotalDonations * maticToInr).toLocaleString()})`
+              : "Loading..."
+          }
           change={12}
         />
         <StatCard
           icon={Home}
           title="Temples Supported"
-          value={donationStats.templeCount}
+          value={verifiedCount}
           change={5}
           color="red"
         />
         <StatCard
           icon={TrendingUp}
           title="This Month"
-          value={`₹${donationStats.monthlyDonation.toLocaleString()}`}
+          value={
+            monthlyDonationStats !== null && monthlyDonationStats !== undefined
+              ? `${monthlyDonationStats.toLocaleString()} MATIC (₹${(monthlyDonationStats * maticToInr).toLocaleString()})`
+              : "Loading..."
+          }
+
           change={8}
           color="pink"
         />

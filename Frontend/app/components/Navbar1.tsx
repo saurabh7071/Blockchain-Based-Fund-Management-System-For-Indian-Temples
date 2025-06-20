@@ -268,9 +268,6 @@ export default function Navbar() {
                       <p className="font-semibold text-gray-800">Admin User</p>
                       <p className="text-gray-600">admin@fundmanagement.com</p>
                       <p className="text-gray-500">Super Administrator</p>
-                      <p className="text-gray-500">
-                        Last Login: Today, 10:30 AM
-                      </p>
                     </div>
                   </div>
 

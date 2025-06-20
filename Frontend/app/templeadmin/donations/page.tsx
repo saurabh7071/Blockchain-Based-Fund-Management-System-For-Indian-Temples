@@ -42,8 +42,7 @@ export default function Donations() {
         });
 
         const result = await res.json();
-        console.log("Temple Donations:", result.data);
-        setDonations(result.data); // ✅ Set the donation list
+        setDonations(result.data); 
 
       } catch (error) {
         console.error("Error fetching temple donations:", error);

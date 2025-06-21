@@ -7,6 +7,7 @@ import AuthWrapper from "@/app/components/AuthWrapper";
 import { TEMPLE_FUND_ABI, TEMPLE_FUND_ADDRESS } from "@/app/utils/TempleFund";
 import { ethers } from "ethers";
 import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 import CryptoCarousel from "@/app/components/CryptoCarousel"; // Import the new component
 
 const UnifiedTempleDonationPage = () => {
@@ -16,7 +17,7 @@ const UnifiedTempleDonationPage = () => {
   const [donationPurpose, setDonationPurpose] = useState("");
   const [selectedCrypto, setSelectedCrypto] = useState("bitcoin"); // Keep this state here
   const [temples, setTemples] = useState([]);
-
+  const router = useRouter();
   const { account, provider, connectWallet } = useMetamask();
   const [ethBalance, setEthBalance] = useState<string | null>(null);
   const [templeAddress, setTempleAddress] = useState(""); // This seems unused, consider removing if not needed.
@@ -25,7 +26,7 @@ const UnifiedTempleDonationPage = () => {
   const [lastTransactionCost, setLastTransactionCost] = useState<string | null>(
     null
   );
-    const [recent, setRecent] = useState([]);
+  const [recent, setRecent] = useState([]);
   const [cryptoPrices, setCryptoPrices] = useState({
     bitcoin: { price: 0, change: 0 },
     ethereum: { price: 0, change: 0 },
@@ -34,7 +35,6 @@ const UnifiedTempleDonationPage = () => {
     cardano: { price: 0, change: 0 },
     solana: { price: 0, change: 0 },
   });
-
 
   // Fetch active temple admins (for donation)
   const fetchActiveTempleAdmins = async () => {
@@ -62,10 +62,12 @@ const UnifiedTempleDonationPage = () => {
   useEffect(() => {
     fetchActiveTempleAdmins();
   }, []);
-useEffect(() => {
+  useEffect(() => {
     const fetchRecent = async () => {
       try {
-        const res = await fetch("http://localhost:5050/api/v1/transactions/recent-donations");
+        const res = await fetch(
+          "http://localhost:5050/api/v1/transactions/recent-donations"
+        );
         const data = await res.json();
         setRecent(data.data);
       } catch (err) {
@@ -146,6 +148,9 @@ useEffect(() => {
 
         if (response.ok) {
           toast.success("🎉 Donation saved in database");
+          setTimeout(() => {
+            router.push(`/receipt?txHash=${tx.hash}`);
+          }, 500);
         } else {
           toast.error(
             `DB Error: ${result?.message || "Failed to save transaction"}`
@@ -306,23 +311,6 @@ useEffect(() => {
     { value: "cardano", name: "Cardano (ADA)" },
     { value: "solana", name: "Solana (SOL)" },
   ];
-
-  useEffect(() => {
-    const fetchRecent = async () => {
-      try {
-        const res = await fetch(
-          "http://localhost:5050/api/v1/transactions/recent-donations"
-        );
-        const data = await res.json();
-        setRecent(data.data);
-      } catch (err) {
-        console.error("Failed to fetch recent donations", err);
-      }
-    };
-
-    fetchRecent();
-  }, []);
-
 
   useEffect(() => {
     const fetchSpecificCryptoPrices = async () => {

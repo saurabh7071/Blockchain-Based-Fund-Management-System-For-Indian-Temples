@@ -79,7 +79,9 @@ export default function GlobalDonationSuccessPage() {
             templeLocation: donationData.receiver?.templeLocation,
             templeWalletAddress: donationData.receiver?.walletAddress,
             senderWalletAddress: donationData.sender?.walletAddress,
-            senderName: donationData.sender?.name || "Anonymous",
+            senderName: (
+              donationData.sender?.name || "Anonymous"
+            ).toUpperCase(),
           };
 
           setDonationDetails(normalizedDonationDetails); // Adjust based on your backend response structure
@@ -103,55 +105,54 @@ export default function GlobalDonationSuccessPage() {
     fetchDonationDetails();
   }, [txHash]); // Re-run when txHash changes
 
-
   useEffect(() => {
-  const fetchUsdValue = async () => {
-    if (
-      donationDetails?.createdAt &&
-      donationDetails?.donatedCrypto &&
-      !donationDetails?.usdValueAtTimeOfDonation // only fetch if not already present
-    ) {
-      const createdAtDate = new Date(donationDetails.createdAt);
+    const fetchUsdValue = async () => {
+      if (
+        donationDetails?.createdAt &&
+        donationDetails?.donatedCrypto &&
+        !donationDetails?.usdValueAtTimeOfDonation // only fetch if not already present
+      ) {
+        const createdAtDate = new Date(donationDetails.createdAt);
 
-      // Format date to dd-mm-yyyy for CoinGecko
-      const formattedDate = `${createdAtDate.getDate()}-${
-        createdAtDate.getMonth() + 1
-      }-${createdAtDate.getFullYear()}`;
+        // Format date to dd-mm-yyyy for CoinGecko
+        const formattedDate = `${createdAtDate.getDate()}-${
+          createdAtDate.getMonth() + 1
+        }-${createdAtDate.getFullYear()}`;
 
-      const getUsdValueAtTime = async (
-        coinId: string,
-        date: string
-      ): Promise<number | null> => {
-        try {
-          const response = await axios.get(
-            `https://api.coingecko.com/api/v3/coins/${coinId}/history?date=${date}`
-          );
+        const getUsdValueAtTime = async (
+          coinId: string,
+          date: string
+        ): Promise<number | null> => {
+          try {
+            const response = await axios.get(
+              `https://api.coingecko.com/api/v3/coins/${coinId}/history?date=${date}`
+            );
 
-          const usdValue =
-            response.data?.market_data?.current_price?.usd || null;
-          return usdValue;
-        } catch (error) {
-          console.error("Error fetching USD value from CoinGecko:", error);
-          return null;
+            const usdValue =
+              response.data?.market_data?.current_price?.usd || null;
+            return usdValue;
+          } catch (error) {
+            console.error("Error fetching USD value from CoinGecko:", error);
+            return null;
+          }
+        };
+
+        const usdPrice = await getUsdValueAtTime(
+          donationDetails.donatedCrypto,
+          formattedDate
+        );
+
+        if (usdPrice) {
+          setDonationDetails((prev: any) => ({
+            ...prev,
+            usdValueAtTimeOfDonation: usdPrice,
+          }));
         }
-      };
-
-      const usdPrice = await getUsdValueAtTime(
-        donationDetails.donatedCrypto,
-        formattedDate
-      );
-
-      if (usdPrice) {
-        setDonationDetails((prev: any) => ({
-          ...prev,
-          usdValueAtTimeOfDonation: usdPrice,
-        }));
       }
-    }
-  };
+    };
 
-  fetchUsdValue();
-}, [donationDetails?.createdAt, donationDetails?.donatedCrypto]);
+    fetchUsdValue();
+  }, [donationDetails?.createdAt, donationDetails?.donatedCrypto]);
 
   // Handle dashboard redirect countdown
   useEffect(() => {
@@ -424,7 +425,9 @@ export default function GlobalDonationSuccessPage() {
         <Link
           href={`/temples/${donationDetails.templeName
             .toLowerCase()
-            .replace(/\s/g, "-")}`}
+            .replace(/\s+/g, "-")}-${donationDetails.templeLocation
+            .toLowerCase()
+            .replace(/\s+/g, "-")}`}
           className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -715,9 +718,12 @@ export default function GlobalDonationSuccessPage() {
                       <Link
                         href={`/temples/${donationDetails.templeName
                           .toLowerCase()
-                          .replace(/\s/g, "-")}-${donationDetails.templeLocation
+                          .replace(
+                            /\s+/g,
+                            "-"
+                          )}-${donationDetails.templeLocation
                           .toLowerCase()
-                          .replace(/\s/g, "-")}`}
+                          .replace(/\s+/g, "-")}`}
                         className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
                       >
                         <ArrowLeft className="mr-2 h-4 w-4" />

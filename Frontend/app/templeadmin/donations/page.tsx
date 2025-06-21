@@ -1,58 +1,57 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { useState, useEffect } from "react"
 import { Search, Calendar, Filter, Download, ExternalLink } from "lucide-react"
 import AuthWrapper from "@/app/components/AuthWrapper"
 
-const donations = [
-  {
-    id: "DON-001",
-    donor: "Rajesh Sharma",
-    amount: "₹25,000",
-    date: "17/5/2023",
-    mode: "UPI",
-    hash: "0x8f7d...3b2a",
-    status: "Verified",
-  },
-  {
-    id: "DON-002",
-    donor: "Priya Patel",
-    amount: "₹10,000",
-    date: "16/5/2023",
-    mode: "Credit Card",
-    hash: "0x2a1b...9c4d",
-    status: "Verified",
-  },
-  {
-    id: "DON-003",
-    donor: "Amit Singh",
-    amount: "₹50,000",
-    date: "15/5/2023",
-    mode: "Bank Transfer",
-    hash: "0x7e3f...5d2c",
-    status: "Verified",
-  },
-  {
-    id: "DON-004",
-    donor: "Sunita Gupta",
-    amount: "₹5,000",
-    date: "14/5/2023",
-    mode: "UPI",
-    hash: "0x4b2c...8e1a",
-    status: "Verified",
-  },
-  {
-    id: "DON-005",
-    donor: "Anonymous",
-    amount: "₹15,000",
-    date: "13/5/2023",
-    mode: "Cash",
-    hash: "0x9d4e...2f7b",
-    status: "Verified",
-  },
-]
-
 export default function Donations() {
+  const [donations, setDonations] = useState([]); // ✅ Moved useState here
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const totalPages = Math.ceil(donations.length / itemsPerPage);
+  const currentDonations = donations.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+
+  useEffect(() => {
+    const fetchTempleDonations = async () => {
+      try {
+        const accessToken = sessionStorage.getItem("accessToken");
+
+        const res = await fetch("http://localhost:5050/api/v1/transactions/temple-donations", {
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+          }
+        });
+
+        const result = await res.json();
+        setDonations(result.data); 
+
+      } catch (error) {
+        console.error("Error fetching temple donations:", error);
+      }
+    };
+
+    fetchTempleDonations();
+  }, []);
+
   return (
     <AuthWrapper role="templeAdmin">
       <div className="p-8 space-y-6 h-full overflow-y-auto">
@@ -66,14 +65,6 @@ export default function Donations() {
             <h1 className="text-3xl font-bold text-gray-800">Donations</h1>
             <p className="text-gray-600 mt-2">Track and manage all donations received by the temple</p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-xl font-medium shadow-lg flex items-center space-x-2"
-          >
-            <Download className="w-5 h-5" />
-            <span>Export CSV</span>
-          </motion.button>
         </motion.div>
 
         {/* Donation Tracker Section */}
@@ -130,26 +121,41 @@ export default function Donations() {
                 </tr>
               </thead>
               <tbody>
-                {donations.map((donation, index) => (
+                {currentDonations.map((donation, index) => (
                   <motion.tr
-                    key={donation.id}
+                    key={donation._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 + index * 0.05 }}
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                   >
-                    <td className="py-4 px-4 text-gray-800">{donation.id}</td>
-                    <td className="py-4 px-4 text-gray-800 font-medium">{donation.donor}</td>
-                    <td className="py-4 px-4 text-gray-800 font-bold">{donation.amount}</td>
-                    <td className="py-4 px-4 text-gray-600">{donation.date}</td>
+                    <td className="py-4 px-4 text-gray-800 font-mono text-sm">
+                      DON-{index + 1}
+                    </td>
+                    <td className="py-4 px-4 text-gray-800 font-medium">
+                      {donation?.sender?.name || "Anonymous"}
+                    </td>
+                    <td className="py-4 px-4 text-gray-800 font-bold">
+                      {donation.amount.toLocaleString()} MATIC
+                    </td>
+                    <td className="py-4 px-4 text-gray-600">
+                      {new Date(donation.createdAt).toLocaleDateString()}
+                    </td>
                     <td className="py-4 px-4">
                       <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                        {donation.mode}
+                        {donation.purpose || "N/A"}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-gray-600 font-mono text-sm">{donation.hash}</td>
+                    <td className="py-4 px-4 text-gray-600 font-mono text-xs truncate max-w-[180px]">
+                      {donation.txHash}
+                    </td>
                     <td className="py-4 px-4">
-                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${donation.status === "confirmed"
+                        ? "bg-green-100 text-green-700"
+                        : donation.status === "pending"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-red-100 text-red-700"
+                        }`}>
                         {donation.status}
                       </span>
                     </td>
@@ -158,6 +164,9 @@ export default function Donations() {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         className="text-orange-500 hover:text-orange-600 transition-colors"
+                        onClick={() =>
+                          window.open(`https://www.oklink.com/amoy/tx/${donation.txHash}`, "_blank")
+                        }
                       >
                         <ExternalLink className="w-5 h-5" />
                       </motion.button>
@@ -165,15 +174,38 @@ export default function Donations() {
                   </motion.tr>
                 ))}
               </tbody>
+
             </table>
           </div>
 
           {/* Pagination */}
           <div className="flex items-center justify-center space-x-2 mt-6">
-            <button className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors">Previous</button>
-            <button className="px-3 py-2 bg-orange-500 text-white rounded-lg">1</button>
-            <button className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors">2</button>
-            <button className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors">Next</button>
+            <button
+              className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+              onClick={handlePrevious}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            {Array.from({ length: totalPages }, (_, idx) => (
+              <button
+                key={idx + 1}
+                className={`px-3 py-2 rounded-lg ${currentPage === idx + 1
+                  ? "bg-orange-500 text-white"
+                  : "text-gray-600 hover:text-gray-800"
+                  }`}
+                onClick={() => setCurrentPage(idx + 1)}
+              >
+                {idx + 1}
+              </button>
+            ))}
+            <button
+              className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+              onClick={handleNext}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
           </div>
         </motion.div>
       </div>

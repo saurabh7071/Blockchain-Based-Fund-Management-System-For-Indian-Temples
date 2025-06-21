@@ -22,9 +22,8 @@ const UnifiedTempleDonationPage = () => {
   const [templeAddress, setTempleAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [lastGasUsed, setLastGasUsed] = useState<string | null>(null);
-  const [lastTransactionCost, setLastTransactionCost] = useState<string | null>(
-    null
-  );
+  const [lastTransactionCost, setLastTransactionCost] = useState<string | null>(null);
+  const [recent, setRecent] = useState([]);
 
   // Fetch active temple admins (for donation)
   const fetchActiveTempleAdmins = async () => {
@@ -51,6 +50,20 @@ const UnifiedTempleDonationPage = () => {
   // Call fetch on mount
   useEffect(() => {
     fetchActiveTempleAdmins();
+  }, []);
+
+  useEffect(() => {
+    const fetchRecent = async () => {
+      try {
+        const res = await fetch("http://localhost:5050/api/v1/transactions/recent-donations");
+        const data = await res.json();
+        setRecent(data.data);
+      } catch (err) {
+        console.error("Failed to fetch recent donations", err);
+      }
+    };
+
+    fetchRecent();
   }, []);
 
   const handleTransaction = async (
@@ -235,9 +248,9 @@ const UnifiedTempleDonationPage = () => {
 
     const templeAddress = selectedTemple.walletAddress;
     if (!templeAddress) {
-    toast.error("Temple wallet address not found.");
-    return;
-  }
+      toast.error("Temple wallet address not found.");
+      return;
+    }
 
     const cryptoInfo = {
       bitcoin: "BTC",
@@ -775,39 +788,31 @@ const UnifiedTempleDonationPage = () => {
 
               {/* Recent Donations */}
               <div className="bg-white rounded-xl shadow-lg p-6">
-                <h4 className="text-lg font-bold text-gray-800 mb-4">
-                  Recent Donations
-                </h4>
+                <h4 className="text-lg font-bold text-gray-800 mb-4">Recent Donations</h4>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-800">0.05 BTC</p>
-                      <p className="text-sm text-gray-600">Tirupati Balaji</p>
+                  {recent.map((donation) => (
+                    <div
+                      key={donation._id}
+                      className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {donation.amount} MATIC
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {donation?.receiver?.templeName || "Unknown Temple"}
+                        </p>
+                      </div>
+                      <span className="text-xs text-gray-500 text-right">
+                        {new Date(donation.createdAt).toLocaleDateString()}{" "}
+                        {new Date(donation.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
                     </div>
-                    <span className="text-xs text-gray-500">2 hours ago</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-800">1.2 ETH</p>
-                      <p className="text-sm text-gray-600">Golden Temple</p>
-                    </div>
-                    <span className="text-xs text-gray-500">5 hours ago</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-800">500 MATIC</p>
-                      <p className="text-sm text-gray-600">Kedarnath Temple</p>
-                    </div>
-                    <span className="text-xs text-gray-500">1 day ago</span>
-                  </div>
+                  ))}
                 </div>
-              </div>
-
-              {/* Total Raised */}
-              <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg p-6 text-white">
-                <h4 className="text-lg font-bold mb-2">Total Raised</h4>
-                <p className="text-3xl font-bold">$2,45,678</p>
-                <p className="text-orange-100 text-sm">This month: $34,567</p>
               </div>
             </div>
           </div>

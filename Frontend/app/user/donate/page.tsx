@@ -16,6 +16,7 @@ const UnifiedTempleDonationPage = () => {
   const [donationPurpose, setDonationPurpose] = useState("");
   const [selectedCrypto, setSelectedCrypto] = useState("bitcoin"); // Keep this state here
   const [temples, setTemples] = useState([]);
+
   const { account, provider, connectWallet } = useMetamask();
   const [ethBalance, setEthBalance] = useState<string | null>(null);
   const [templeAddress, setTempleAddress] = useState(""); // This seems unused, consider removing if not needed.
@@ -24,8 +25,7 @@ const UnifiedTempleDonationPage = () => {
   const [lastTransactionCost, setLastTransactionCost] = useState<string | null>(
     null
   );
-
-  // Keep cryptoPrices state here as it's used directly in the form
+    const [recent, setRecent] = useState([]);
   const [cryptoPrices, setCryptoPrices] = useState({
     bitcoin: { price: 0, change: 0 },
     ethereum: { price: 0, change: 0 },
@@ -35,13 +35,6 @@ const UnifiedTempleDonationPage = () => {
     solana: { price: 0, change: 0 },
   });
 
-
-  // This useEffect will need to be slightly modified to set cryptoPrices
-  // You could either pass a setter down to CryptoCarousel, or make a separate
-  // useEffect here that listens to the `onSelectCrypto` from the carousel
-  // and then fetches the specific price, or, better yet, the CryptoCarousel
-  // could expose the entire `cryptoPrices` object as a prop if it's the source of truth for prices.
-  // For simplicity, let's keep the price fetching here and pass it down.
 
   // Fetch active temple admins (for donation)
   const fetchActiveTempleAdmins = async () => {
@@ -69,60 +62,19 @@ const UnifiedTempleDonationPage = () => {
   useEffect(() => {
     fetchActiveTempleAdmins();
   }, []);
-
-  // Fetch specific crypto prices for the donation form (keep this here)
-  useEffect(() => {
-    const fetchSpecificCryptoPrices = async () => {
+useEffect(() => {
+    const fetchRecent = async () => {
       try {
-        const coinGeckoIds =
-          "bitcoin,ethereum,binancecoin,matic-network,cardano,solana";
-        const specificResponse = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${coinGeckoIds}&vs_currencies=usd&include_24hr_change=true`
-        );
-
-        if (!specificResponse.ok) {
-          throw new Error(`HTTP error! status: ${specificResponse.status}`);
-        }
-
-        const specificData = await specificResponse.json();
-
-        setCryptoPrices({
-          bitcoin: {
-            price: specificData.bitcoin?.usd || 0,
-            change: specificData.bitcoin?.usd_24h_change || 0,
-          },
-          ethereum: {
-            price: specificData.ethereum?.usd || 0,
-            change: specificData.ethereum?.usd_24h_change || 0,
-          },
-          bnb: {
-            price: specificData.binancecoin?.usd || 0,
-            change: specificData.binancecoin?.usd_24h_change || 0,
-          },
-          polygon: {
-            price: specificData["matic-network"]?.usd || 0,
-            change: specificData["matic-network"]?.usd_24h_change || 0,
-          },
-          cardano: {
-            price: specificData.cardano?.usd || 0,
-            change: specificData.cardano?.usd_24h_change || 0,
-          },
-          solana: {
-            price: specificData.solana?.usd || 0,
-            change: specificData.solana?.usd_24h_change || 0,
-          },
-        });
-      } catch (error) {
-        console.error("Failed to fetch specific crypto prices:", error);
+        const res = await fetch("http://localhost:5050/api/v1/transactions/recent-donations");
+        const data = await res.json();
+        setRecent(data.data);
+      } catch (err) {
+        console.error("Failed to fetch recent donations", err);
       }
     };
 
-    fetchSpecificCryptoPrices();
-    const interval = setInterval(fetchSpecificCryptoPrices, 30000);
-    return () => clearInterval(interval);
+    fetchRecent();
   }, []);
-
-
   const handleTransaction = async (
     contractCall: Promise<ethers.TransactionResponse>,
     successMessage: string
@@ -178,21 +130,26 @@ const UnifiedTempleDonationPage = () => {
         if (!accessToken) {
           throw new Error("Access token not found. Please log in again.");
         }
-        const response = await fetch("http://localhost:5050/api/v1/transactions/donate-to-temple", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(payload),
-        });
+        const response = await fetch(
+          "http://localhost:5050/api/v1/transactions/donate-to-temple",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(payload),
+          }
+        );
 
         const result = await response.json();
 
         if (response.ok) {
           toast.success("🎉 Donation saved in database");
         } else {
-          toast.error(`DB Error: ${result?.message || "Failed to save transaction"}`);
+          toast.error(
+            `DB Error: ${result?.message || "Failed to save transaction"}`
+          );
         }
 
         toast.success(`✅ ${successMessage}`);
@@ -219,7 +176,6 @@ const UnifiedTempleDonationPage = () => {
     }
   };
 
-
   const donateEth = async (templeAddress: string) => {
     if (!provider || !account) {
       toast.error("Connect wallet first");
@@ -239,7 +195,11 @@ const UnifiedTempleDonationPage = () => {
       );
 
       const amountInEth = donationAmount;
-      if (!amountInEth || isNaN(Number(amountInEth)) || Number(amountInEth) <= 0) {
+      if (
+        !amountInEth ||
+        isNaN(Number(amountInEth)) ||
+        Number(amountInEth) <= 0
+      ) {
         toast.error("Invalid donation amount");
         return;
       }
@@ -261,7 +221,6 @@ const UnifiedTempleDonationPage = () => {
       toast.error("Donation failed");
     }
   };
-
 
   const fetchEthBalance = async (templeAddr: string) => {
     if (!provider || !ethers.isAddress(templeAddr)) {
@@ -329,7 +288,6 @@ const UnifiedTempleDonationPage = () => {
     }
   };
 
-
   const formatPrice = (price) => {
     if (price >= 1) {
       return price.toLocaleString("en-US", {
@@ -349,13 +307,80 @@ const UnifiedTempleDonationPage = () => {
     { value: "solana", name: "Solana (SOL)" },
   ];
 
+  useEffect(() => {
+    const fetchRecent = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5050/api/v1/transactions/recent-donations"
+        );
+        const data = await res.json();
+        setRecent(data.data);
+      } catch (err) {
+        console.error("Failed to fetch recent donations", err);
+      }
+    };
+
+    fetchRecent();
+  }, []);
+
+
+  useEffect(() => {
+    const fetchSpecificCryptoPrices = async () => {
+      try {
+        const coinGeckoIds =
+          "bitcoin,ethereum,binancecoin,matic-network,cardano,solana";
+        const specificResponse = await fetch(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${coinGeckoIds}&vs_currencies=usd&include_24hr_change=true`
+        );
+
+        if (!specificResponse.ok) {
+          throw new Error(`HTTP error! status: ${specificResponse.status}`);
+        }
+
+        const specificData = await specificResponse.json();
+
+        setCryptoPrices({
+          bitcoin: {
+            price: specificData.bitcoin?.usd || 0,
+            change: specificData.bitcoin?.usd_24h_change || 0,
+          },
+          ethereum: {
+            price: specificData.ethereum?.usd || 0,
+            change: specificData.ethereum?.usd_24h_change || 0,
+          },
+          bnb: {
+            price: specificData.binancecoin?.usd || 0,
+            change: specificData.binancecoin?.usd_24h_change || 0,
+          },
+          polygon: {
+            price: specificData["matic-network"]?.usd || 0,
+            change: specificData["matic-network"]?.usd_24h_change || 0,
+          },
+          cardano: {
+            price: specificData.cardano?.usd || 0,
+            change: specificData.cardano?.usd_24h_change || 0,
+          },
+          solana: {
+            price: specificData.solana?.usd || 0,
+            change: specificData.solana?.usd_24h_change || 0,
+          },
+        });
+      } catch (error) {
+        console.error("Failed to fetch specific crypto prices:", error);
+      }
+    };
+
+    fetchSpecificCryptoPrices();
+    const interval = setInterval(fetchSpecificCryptoPrices, 30000);
+    return () => clearInterval(interval);
+  }, []);
   return (
     <AuthWrapper role="user">
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50">
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Live Crypto Carousel Section */}
-          <CryptoCarousel onSelectCrypto={setSelectedCrypto} /> {/* Use the imported component here */}
-
+          <CryptoCarousel onSelectCrypto={setSelectedCrypto} />{" "}
+          {/* Use the imported component here */}
           {/* Donation Section Header */}
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-6">
@@ -367,7 +392,6 @@ const UnifiedTempleDonationPage = () => {
               blockchain technology.
             </p>
           </div>
-
           <div className="grid lg:grid-cols-3 gap-8" id="donation-form">
             {/* Donation Form */}
             <div className="lg:col-span-2">
@@ -385,7 +409,9 @@ const UnifiedTempleDonationPage = () => {
                     <select
                       value={selectedTemple?.templeName || ""}
                       onChange={(e) => {
-                        const selected = temples.find(t => t.templeName === e.target.value);
+                        const selected = temples.find(
+                          (t) => t.templeName === e.target.value
+                        );
                         setSelectedTemple(selected || null);
                       }}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -393,12 +419,14 @@ const UnifiedTempleDonationPage = () => {
                     >
                       <option value="">Choose a temple...</option>
                       {temples.map((temple) => (
-                        <option key={temple.walletAddress} value={temple.templeName}>
+                        <option
+                          key={temple.walletAddress}
+                          value={temple.templeName}
+                        >
                           {temple.templeName}
                         </option>
                       ))}
                     </select>
-
                   </div>
 
                   {/* Purpose Selection */}
@@ -451,10 +479,11 @@ const UnifiedTempleDonationPage = () => {
                               ${formatPrice(cryptoPrices[selectedCrypto].price)}
                             </span>
                             <div
-                              className={`text-xs ml-2 inline-block ${cryptoPrices[selectedCrypto].change >= 0
-                                ? "text-green-500"
-                                : "text-red-500"
-                                }`}
+                              className={`text-xs ml-2 inline-block ${
+                                cryptoPrices[selectedCrypto].change >= 0
+                                  ? "text-green-500"
+                                  : "text-red-500"
+                              }`}
                             >
                               {cryptoPrices[selectedCrypto].change >= 0
                                 ? "+"
@@ -557,66 +586,60 @@ const UnifiedTempleDonationPage = () => {
                   Recent Donations
                 </h4>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-800">0.05 BTC</p>
-                      <p className="text-sm text-gray-600">Tirupati Balaji</p>
+                  {recent.map((donation) => (
+                    <div
+                      key={donation._id}
+                      className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {donation.amount} MATIC
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {donation?.receiver?.templeName || "Unknown Temple"}
+                        </p>
+                      </div>
+                      <span className="text-xs text-gray-500 text-right">
+                        {new Date(donation.createdAt).toLocaleDateString()}{" "}
+                        {new Date(donation.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
                     </div>
-                    <span className="text-xs text-gray-500">2 hours ago</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-800">1.2 ETH</p>
-                      <p className="text-sm text-gray-600">Golden Temple</p>
-                    </div>
-                    <span className="text-xs text-gray-500">5 hours ago</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-800">500 MATIC</p>
-                      <p className="text-sm text-gray-600">Kedarnath Temple</p>
-                    </div>
-                    <span className="text-xs text-gray-500">1 day ago</span>
-                  </div>
+                  ))}
                 </div>
-              </div>
-
-              {/* Total Raised */}
-              <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg p-6 text-white">
-                <h4 className="text-lg font-bold mb-2">Total Raised</h4>
-                <p className="text-3xl font-bold">$2,45,678</p>
-                <p className="text-orange-100 text-sm">This month: $34,567</p>
               </div>
             </div>
           </div>
         </div>
       </div>
       {/* Footer */}
-        <footer className="bg-gray-800 text-white py-8 mt-16">
-          <div className="max-w-6xl mx-auto px-4 text-center">
-            <p className="text-gray-400">
-              &copy; 2025 DevTemple. Empowering sacred traditions through
-              blockchain technology.
-            </p>
-          </div>
-        </footer>
+      <footer className="bg-gray-800 text-white py-8 mt-16">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <p className="text-gray-400">
+            &copy; 2025 DevTemple. Empowering sacred traditions through
+            blockchain technology.
+          </p>
+        </div>
+      </footer>
 
-        <style jsx>{`
-          @keyframes scroll {
-            0% {
-              transform: translateX(0);
-            }
-            100% {
-              transform: translateX(-50%);
-            }
+      <style jsx>{`
+        @keyframes scroll {
+          0% {
+            transform: translateX(0);
           }
-          .animate-scroll {
-            animation: scroll 60s linear infinite;
+          100% {
+            transform: translateX(-50%);
           }
-          .animate-scroll:hover {
-            animation-play-state: paused;
-          }
-        `}</style>
+        }
+        .animate-scroll {
+          animation: scroll 60s linear infinite;
+        }
+        .animate-scroll:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
     </AuthWrapper>
   );
 };

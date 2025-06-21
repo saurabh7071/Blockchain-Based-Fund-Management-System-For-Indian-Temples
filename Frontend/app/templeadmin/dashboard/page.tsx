@@ -1,51 +1,11 @@
 "use client"
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion"
 import { TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react"
 import AuthWrapper from "@/app/components/AuthWrapper"
 
-const stats = [
-  {
-    title: "Total Donations",
-    value: "₹1,25,45,789",
-    change: "+20.1% from last month",
-    icon: DollarSign,
-    color: "from-green-500 to-emerald-500",
-    trend: "up",
-  },
-  {
-    title: "Total Expenses",
-    value: "₹45,23,456",
-    change: "+12.5% from last month",
-    icon: TrendingDown,
-    color: "from-red-500 to-pink-500",
-    trend: "up",
-  },
-  {
-    title: "Current Balance",
-    value: "₹80,22,333",
-    change: "+8.2% from last month",
-    icon: Activity,
-    color: "from-blue-500 to-cyan-500",
-    trend: "up",
-  },
-  {
-    title: "Active Campaigns",
-    value: "3",
-    change: "1 completed this month",
-    icon: TrendingUp,
-    color: "from-purple-500 to-violet-500",
-    trend: "up",
-  },
-]
-
-const recentDonations = [
-  { donor: "Rajesh Sharma", amount: "₹25,000", date: "17/5/2023", mode: "UPI" },
-  { donor: "Priya Patel", amount: "₹10,000", date: "16/5/2023", mode: "Credit Card" },
-  { donor: "Amit Singh", amount: "₹50,000", date: "15/5/2023", mode: "Bank Transfer" },
-  { donor: "Sunita Gupta", amount: "₹5,000", date: "14/5/2023", mode: "UPI" },
-  { donor: "Anonymous", amount: "₹15,000", date: "13/5/2023", mode: "Cash" },
-]
 
 const recentExpenses = [
   { category: "Infrastructure", amount: "₹1,50,000", date: "17/5/2023" },
@@ -56,33 +16,152 @@ const recentExpenses = [
 ]
 
 export default function Dashboard() {
+  const [recentDonations, setRecentDonations] = useState([]);
+  const [monthlyDonations, setMonthlyDonations] = useState([]);
+  const [userCount, setUserCount] = useState(0);
+  const [totalDonationStats, setTotalDonationStats] = useState({ totalMATIC: 0 });
+  const [maticToInr, setMaticToInr] = useState(0);
+  const router = useRouter();
+
+  const stats = [
+    {
+      title: "Total Donations",
+      value: totalDonationStats?.totalMATIC
+        ? `${totalDonationStats.totalMATIC.toLocaleString()} MATIC (₹${(totalDonationStats.totalMATIC * maticToInr).toLocaleString()})`
+        : "Loading...",
+      change: "+20.1% from last month",
+      icon: DollarSign,
+      color: "from-green-500 to-emerald-500",
+      trend: "up",
+    },
+    {
+      title: "Total Expenses",
+      value: "₹45,23,456",
+      change: "+12.5% from last month",
+      icon: TrendingDown,
+      color: "from-red-500 to-pink-500",
+      trend: "up",
+    },
+    {
+      title: "Current Balance",
+      value: "₹45,23,456",
+      change: "+8.2% from last month",
+      icon: Activity,
+      color: "from-blue-500 to-cyan-500",
+      trend: "up",
+    },
+    {
+      title: "Active Users",
+      value: userCount.toString(),
+      change: "3 completed this month",
+      icon: TrendingUp,
+      color: "from-purple-500 to-violet-500",
+      trend: "up",
+    },
+  ]
+
+
+  useEffect(() => {
+    const fetchRecent = async () => {
+      try {
+        const token = sessionStorage.getItem("accessToken");
+
+        const res = await fetch("http://localhost:5050/api/v1/transactions/recent-temple-donations", {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        setRecentDonations(data.data || []);
+      } catch (err) {
+        console.error("Failed to load recent temple donations:", err);
+      }
+    };
+
+    fetchRecent();
+  }, []);
+
+  useEffect(() => {
+    const fetchTrends = async () => {
+      try {
+        const token = sessionStorage.getItem("accessToken");
+        const res = await fetch("http://localhost:5050/api/v1/transactions/temple-monthly-donations", {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+
+        const result = await res.json();
+        setMonthlyDonations(result.data || []);
+      } catch (err) {
+        console.error("Error fetching donation trends", err);
+      }
+    };
+
+    fetchTrends();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      try {
+        const res = await fetch("http://localhost:5050/api/v1/superAdminDashboard/count-users");
+        const result = await res.json();
+        setUserCount(result.data.userCount || 0);
+      } catch (error) {
+        console.error("Failed to fetch user count:", error);
+      }
+    };
+
+    fetchUserCount();
+  }, []);
+
+  useEffect(() => {
+    const fetchTotalDonations = async () => {
+      try {
+        const token = sessionStorage.getItem("accessToken");
+        const res = await fetch("http://localhost:5050/api/v1/transactions/temple-total-donations", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        setTotalDonationStats(data.data);
+      } catch (err) {
+        console.error("Failed to fetch total donations:", err);
+      }
+    };
+
+    fetchTotalDonations();
+  }, []);
+
+  useEffect(() => {
+    const fetchMaticToINR = async () => {
+      try {
+        const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=inr");
+        const data = await res.json();
+        setMaticToInr(data["matic-network"]?.inr || 0);
+      } catch (error) {
+        console.error("Error fetching MATIC to INR:", error);
+        setMaticToInr(90); // fallback
+      }
+    };
+
+    fetchMaticToINR();
+  }, []);
+
   return (
     <AuthWrapper role="templeAdmin">
       <div className="p-8 space-y-8 h-full overflow-y-auto">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
           <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-600">Welcome back, Temple Admin! Here's what's happening with your temple today.</p>
-        </motion.div>
-
-        {/* Time Filter */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex space-x-2"
-        >
-          {["All", "Month", "Year"].map((filter, index) => (
-            <button
-              key={filter}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${index === 0
-                  ? "bg-orange-500 text-white shadow-lg"
-                  : "bg-white text-gray-600 hover:bg-orange-50 border border-gray-200"
-                }`}
-            >
-              {filter}
-            </button>
-          ))}
+          <p className="text-gray-600">
+            Welcome back, Temple Admin! Here's what's happening with your temple today.
+          </p>
         </motion.div>
 
         {/* Stats Grid */}
@@ -126,14 +205,15 @@ export default function Dashboard() {
           >
             <h3 className="text-xl font-bold text-gray-800 mb-2">Donation Trends</h3>
             <p className="text-gray-600 mb-6">Monthly donation amounts for the current year</p>
-
             {/* Simple Bar Chart */}
             <div className="space-y-4">
-              {["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((month, index) => {
-                const height = Math.random() * 100 + 20
+              {monthlyDonations.map((item, index) => {
+                const maxAmount = Math.max(...monthlyDonations.map(item => item.amount), 1);
+                const matic = item.amount;
+                const height = (matic / maxAmount) * 100;
                 return (
-                  <div key={month} className="flex items-center space-x-4">
-                    <span className="w-8 text-sm text-gray-600">{month}</span>
+                  <div key={item.month} className="flex items-center space-x-4">
+                    <span className="w-8 text-sm text-gray-600">{item.month}</span>
                     <div className="flex-1 bg-gray-100 rounded-full h-3">
                       <motion.div
                         initial={{ width: 0 }}
@@ -142,7 +222,7 @@ export default function Dashboard() {
                         className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full"
                       />
                     </div>
-                    <span className="text-sm text-gray-600">₹{Math.floor(height * 1000)}</span>
+                    <span className="text-sm text-gray-600">{item.amount.toLocaleString()} MATIC</span>
                   </div>
                 )
               })}
@@ -185,7 +265,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100"
+            className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 flex flex-col min-h-[350px]"
           >
             <h3 className="text-xl font-bold text-gray-800 mb-6">Recent Donations</h3>
             <div className="space-y-4">
@@ -199,13 +279,25 @@ export default function Dashboard() {
                 >
                   <div>
                     <p className="font-medium text-gray-800">{donation.donor}</p>
-                    <p className="text-sm text-gray-600">
-                      {donation.date} • {donation.mode}
-                    </p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <p className="text-sm text-gray-600">{donation.date}</p>
+                      <p className="text-xs text-gray-400">{donation.purpose || "General"}</p>
+                    </div>
+
                   </div>
                   <span className="font-bold text-green-600">{donation.amount}</span>
+
                 </motion.div>
               ))}
+            </div>
+            {/* Button */}
+            <div className="mt-auto pt-4 text-right">
+              <button
+                onClick={() => router.push("/templeadmin/donations")}
+                className="text-sm font-medium text-orange-600 hover:underline"
+              >
+                View All Donations →
+              </button>
             </div>
           </motion.div>
 

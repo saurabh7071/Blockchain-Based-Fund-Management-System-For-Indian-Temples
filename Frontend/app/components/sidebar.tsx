@@ -23,8 +23,7 @@ export default function Sidebar() {
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "donations", label: "Donations", icon: Heart },
     { id: "expenses", label: "Expenses", icon: CreditCard },
-    { id: "campaigns", label: "Campaigns", icon: Megaphone },
-    { id: "events", label: "Events", icon: Calendar },
+    { id: "reports", label: "Reports", icon: Megaphone },
     { id: "withdrawal", label: "Withdrawal", icon: Wallet },
     { id: "temple-info", label: "Temple Info", icon: Settings },
   ]

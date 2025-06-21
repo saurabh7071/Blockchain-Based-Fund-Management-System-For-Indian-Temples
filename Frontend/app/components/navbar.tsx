@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useMetamask } from "../hooks/useMetamask";
 import LogoutButton from "./LogoutButton";
+import { jwtDecode } from "jwt-decode";
 import {
   LogOut,
   Wallet,
@@ -18,6 +19,7 @@ export default function Navbar() {
   const { account, connectWallet, loading } = useMetamask();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showConnectedButton, setShowConnectedButton] = useState(false); // 👈 for delayed button show
+  const [userEmail, setUserEmail] = useState("admin@example.com");
 
   const handleChangePassword = () => {
     alert("Change password functionality");
@@ -51,6 +53,13 @@ export default function Navbar() {
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
+  useEffect(() => {
+    const token = sessionStorage.getItem("accessToken");
+    if (token) {
+      const decoded = jwtDecode(token);
+      setUserEmail(decoded.email);
+    }
+  }, []);
 
   // Delayed Connect Wallet button if not connected
   useEffect(() => {
@@ -200,17 +209,15 @@ export default function Navbar() {
                       <motion.div
                         key={notification.id}
                         whileHover={{ backgroundColor: "#f9fafb" }}
-                        className={`px-4 py-3 border-b border-gray-50 cursor-pointer ${
-                          notification.unread ? "bg-orange-50" : ""
-                        }`}
+                        className={`px-4 py-3 border-b border-gray-50 cursor-pointer ${notification.unread ? "bg-orange-50" : ""
+                          }`}
                       >
                         <div className="flex items-start space-x-3">
                           <div
-                            className={`w-2 h-2 rounded-full mt-2 ${
-                              notification.unread
-                                ? "bg-orange-500"
-                                : "bg-gray-300"
-                            }`}
+                            className={`w-2 h-2 rounded-full mt-2 ${notification.unread
+                              ? "bg-orange-500"
+                              : "bg-gray-300"
+                              }`}
                           />
                           <div className="flex-1">
                             <h4 className="font-medium text-gray-800 text-sm">
@@ -252,11 +259,8 @@ export default function Navbar() {
                   <div className="p-4 border-b border-gray-200">
                     <div className="space-y-1 text-sm">
                       <p className="font-semibold text-gray-800">Admin User</p>
-                      <p className="text-gray-600">admin@fundmanagement.com</p>
-                      <p className="text-gray-500">Super Administrator</p>
-                      <p className="text-gray-500">
-                        Last Login: Today, 10:30 AM
-                      </p>
+                      <p className="text-gray-600">{userEmail}</p>
+                      <p className="text-gray-500">Temple Administrator</p>
                     </div>
                   </div>
 

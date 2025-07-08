@@ -49,6 +49,8 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Usage](#usage)
+-[Team](#team)
+-[Licence](#licence)
 
 </div>
 
@@ -56,21 +58,49 @@
 
 ## Overview
 
-The Blockchain-Based Fund Management System for Indian Temples is an innovative platform that harnesses blockchain technology to facilitate secure, transparent, and automated management of temple donations and funds. It integrates smart contracts to ensure transparency in fund allocation and time-locked transactions, ensuring fruitless operations. The system supports role-based access control, real-time notifications via WebSocket, and identifies automated workflows, making it a modern solution for modern temple administration.
+The Blockchain-Based Fund Management System for Indian Temples is an modernn platform that harnesses blockchain technology to facilitate secure, transparent management of temple donations and funds. It integrates smart contracts to ensure transparency in fund allocation and time-locked transactions, ensuring trustless operations. The system supports role-based access control, real-time notifications via WebSocket and systematic workflows, making it a modern solution for modern temple administration.
 
-### Why Blockchain-Based-Fund-Management-System-For-Indian-Temples❓
-
+### 📌**Why Blockchain-Based-Fund-Management-System-For-Indian-Temples**❓
 This project aims to revolutionize temple fund management by providing a decentralized, tamper-proof ecosystem. The core features include:
 
-🔗 **Blockchain Integration**: Ensures transparent, immutable records of donations and fund allocations
+- 🔗 **Blockchain Integration**: Ensures transparent, immutable records of donations and fund allocations
+- ⚡ **Smart Contracts**: Automate temple registration, fund distribution, and seamless transactions
+- 🎯 **Role-Based Access Control**: Secure management with differentiated permissions for users and admins
+- 📊 **Real-Time Updates**: Keep stakeholders informed with instant WebSocket notifications
+- 🏗️ **Comprehensive Architecture**: Combines backend and frontend modules for a seamless developer experience
+- 🔐 **JWT Authentication**: Provides secure, token-based user authentication for safer interactions.
+- 📄 **Report Generation**: Generate insightful reports to analyze donation flows and temple finances.
+- 📝 **Well Documented**: Clear, thorough documentation to help developers easily understand and contribute.
 
-⚡ **Smart Contracts**: Automate temple registration, fund distribution, and seemless transactions
+## 💡 **What the Application Does**
 
-🎯 **Role-Based Access Control**: Secure management with differentiated permissions for users and admins
+Our application is a **Blockchain-Based Fund Management System for Indian Temples**. It allows devotees to donate securely in cryptocurrency (ETH) to registered temples, ensuring **full transparency, traceability, and trust**. Temple administrators can view donation histories, generate **weekly and monthly reports**, and securely manage fund withdrawals. The platform replaces manual bookkeeping and reduces fraud risks inherent in traditional temple donation systems.
 
-📊 **Real-Time Updates**: Keep stakeholders informed with instant WebSocket notifications
+## ⚙️ **Why We Used the Technologies We Used**
 
-🏗️ **Comprehensive Architecture**: Combines backend and frontend modules for a seamless developer experience
+- **Blockchain (Ethereum Smart Contracts)**: Guarantees tamper-proof records, transparent transactions, and decentralized trust without intermediaries.
+- **Node.js + Express**: Fast, scalable backend ideal for handling APIs and blockchain integrations.
+- **MongoDB**: A flexible NoSQL database perfect for storing transaction and user data with dynamic schemas.
+- **Next.js + Tailwind CSS**: Provides a modern, performant, and responsive UI for smooth user experiences.
+- **JWT Authentication**: Delivers secure, token-based user sessions and authorization flows.
+
+## 🚧 Challenges Faced
+
+- Integrating blockchain transactions with backend logic and database consistency was complex.
+- Handling volatile gas fees and transaction costs in the Ethereum network.
+- Designing secure role-based access control for different users (donors, temple admins, super admins).
+- Implementing dynamic report generation for weekly and monthly summaries while maintaining fast query performance.
+
+---
+
+## 🌟 Features Planned for the Future
+
+- **Multi-currency Support** — Enable donations in other cryptocurrencies like USDT or MATIC.
+- **Blockchain Explorer Integration** — Directly link transaction hashes to blockchain explorers for easier verification.
+- **Automated Email Receipts** — Send donors blockchain-verified receipts automatically after successful donations.
+- **Analytics Dashboard** — Visual charts and graphs for temples to analyze donation trends.
+- **Mobile Application** — Build a mobile app for easier, on-the-go donations.
+- **Real-time Alerts** — Notify temple admins of large donations or unusual activities in real-time.
 
 </div>
 
@@ -79,19 +109,17 @@ This project aims to revolutionize temple fund management by providing a decentr
 ## Getting Started
 
 ### Prerequisites
-
 This project requires the following dependencies:
 
-- **Programming Language**: JavaScript
+- **Programming Language**: TypeScript, JavaScript
 - **Package Manager**: npm
 
 ### Installation
-
 Build Blockchain-Based-Fund-Management-System-For-Indian-Temples from the source and install dependencies:
 
 #### Clone the repository:
 ```bash
-git clone https://github.com/username/Blockchain-Based-Fund-Management-System-For-Indian-Temples.git
+git clone https://github.com/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples.git
 ```
 
 #### Navigate to the project directory:
@@ -113,6 +141,21 @@ Using **npm**:
 ```bash
 npm run dev
 ```
+
+## 👥 Team
+
+This project was developed collaboratively by:
+
+- **Saurabh Vaidya** (Me)
+- **Gaurav Rai**
+- **Shreya Shirbhate**
+- **Rajnandan Rai**
+
+## 📄 License
+
+This project is licensed under the MIT License © 2025 Saurabh Vaidya.  
+See the [LICENSE](./LICENSE) file for details.
+
 
 
 ## 🔙 [Return](#table-of-contents)

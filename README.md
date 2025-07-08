@@ -49,8 +49,8 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Usage](#usage)
--[Team](#team)
--[Licence](#licence)
+- [Team](#team)
+- [Licence](#licence)
 
 </div>
 

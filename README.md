@@ -93,17 +93,6 @@ Our application is a **Blockchain-Based Fund Management System for Indian Temple
 - Designing secure role-based access control for different users (donors, temple admins, super admins).
 - Implementing dynamic report generation for weekly and monthly summaries while maintaining fast query performance.
 
----
-
-## 🌟 Features Planned for the Future
-
-- **Multi-currency Support** — Enable donations in other cryptocurrencies like USDT or MATIC.
-- **Blockchain Explorer Integration** — Directly link transaction hashes to blockchain explorers for easier verification.
-- **Automated Email Receipts** — Send donors blockchain-verified receipts automatically after successful donations.
-- **Analytics Dashboard** — Visual charts and graphs for temples to analyze donation trends.
-- **Mobile Application** — Build a mobile app for easier, on-the-go donations.
-- **Real-time Alerts** — Notify temple admins of large donations or unusual activities in real-time.
-
 </div>
 
 <div align="left">
@@ -144,6 +133,53 @@ Using **npm**:
 npm run dev
 ```
 
+## Project Screenshots
+
+### Donor Dashboard View
+![Dashboard Screenshot](./assets/images/user-dashboard.png)
+
+### Donor Login View 
+![login screenshot](./assets/images/user-login.png)
+
+### Temples Cards View 
+![Temple Cards](./assets/images/temples.png)
+
+### Donation Page View
+![Donation Page](./assets/images/donation-page.png)
+
+### Donor Metamask page View 
+![metamask](./assets/images/metamask.png)
+
+### Donation Successfull View
+![donation successfull page](./assets/images/donation-successfull.png)
+
+### Transaction Verification Details 
+![transaction verification details](./assets/images/transaction-verification-details.png)
+
+### User Completed Donations 
+![user donations](./assets/images/user-donations.png)
+
+### Super Admin Dashboard View 
+![superadmin dashboard](./assets/images/superadmin-dashboard.png)
+
+### Registered Temples 
+![Registered Temples](./assets/images/registerd-temple.png)
+
+### Temple Admin Dashboard View 
+![temple admin dashboard](./assets/images/temple-admin-dashboard.png)
+
+### Temple Info View
+![temple info view](./assets/images/temple-info.png)
+
+### Withdrawal Page View
+![withdrawal page](./assets/images/withdrawal-page.png)
+
+### Donation Tracker for Temple 
+![donation tracker](./assets/images/donation-tracker.png)
+
+### Donation Reports View 
+![reports](./assets/images/monthly-donation-report.png)
+
 ## Team
 This project was developed collaboratively by:
 
@@ -177,13 +213,6 @@ See the [LICENSE](./LICENSE) file for details.
 ![Issues](https://img.shields.io/github/issues/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples?style=flat-square)
 ![Pull Requests](https://img.shields.io/github/issues-pr/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples?style=flat-square)
 ![Repo Size](https://img.shields.io/github/repo-size/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples?style=flat-square)
-
-
-
-
-
-
-
 
 ## 🔙 [Return](#table-of-contents)
 

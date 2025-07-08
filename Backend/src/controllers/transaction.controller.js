@@ -6,7 +6,6 @@ import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
 
 // ✅ Create a transaction: supports transfer / withdrawal / registration
-// 
 const donateToTemple = asyncHandler(async (req, res) => {
     const {
         amount,
@@ -97,63 +96,63 @@ const donateToTemple = asyncHandler(async (req, res) => {
 
 // ✅ Donation History (only for transfers made by user)
 const donationHistory = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
-  if (!userId) {
-    throw new ApiError(400, "User ID not found");
-  }
+    const userId = req.user._id;
+    if (!userId) {
+        throw new ApiError(400, "User ID not found");
+    }
 
-  const donations = await Transaction.find({
-    sender: userId,
-    transactionType: "transfer",
-  })
-    .populate({
-      path: "receiver",
-      select: "templeName templeLocation",
+    const donations = await Transaction.find({
+        sender: userId,
+        transactionType: "transfer",
     })
-    .populate({
-      path: "sender",
-      select: "name walletAddress",
-    })
-    .sort({ createdAt: -1 });
+        .populate({
+            path: "receiver",
+            select: "templeName templeLocation",
+        })
+        .populate({
+            path: "sender",
+            select: "name walletAddress",
+        })
+        .sort({ createdAt: -1 });
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, donations, "Donation history fetched successfully")
-    );
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, donations, "Donation history fetched successfully")
+        );
 });
 
 // ✅ Get transaction by txHash (for receipt page)
 const getTransactionByTxHash = asyncHandler(async (req, res) => {
-  const { txHash } = req.query;
+    const { txHash } = req.query;
 
-  if (!txHash) {
-    throw new ApiError(400, "Transaction hash is required");
-  }
+    if (!txHash) {
+        throw new ApiError(400, "Transaction hash is required");
+    }
 
-  const transaction = await Transaction.findOne({ txHash })
-    .populate({
-      path: "sender",
-      select: "name walletAddress", // ✅ changed fullName → name
-    })
-    .populate({
-      path: "receiver",
-      select: "templeName templeLocation walletAddress", // ✅ keep only necessary fields
-    });
+    const transaction = await Transaction.findOne({ txHash })
+        .populate({
+            path: "sender",
+            select: "name walletAddress", 
+        })
+        .populate({
+            path: "receiver",
+            select: "templeName templeLocation walletAddress", 
+        });
 
-  if (!transaction) {
-    throw new ApiError(404, "Transaction not found");
-  }
+    if (!transaction) {
+        throw new ApiError(404, "Transaction not found");
+    }
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        transaction,
-        "Transaction details fetched successfully"
-      )
-    );
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                transaction,
+                "Transaction details fetched successfully"
+            )
+        );
 });
 
 const generateTempleReport = asyncHandler(async (req, res) => {

@@ -49,6 +49,7 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Usage](#usage)
+- [Project Screenshots](#project-screenshots)
 - [Team](#team)
 - [My Contribution](#my-contribution)
 - [License](#license)
@@ -62,7 +63,7 @@
 
 The Blockchain-Based Fund Management System for Indian Temples is an modernn platform that harnesses blockchain technology to facilitate secure, transparent management of temple donations and funds. It integrates smart contracts to ensure transparency in fund allocation and time-locked transactions, ensuring trustless operations. The system supports role-based access control, real-time notifications via WebSocket and systematic workflows, making it a modern solution for modern temple administration.
 
-### 📌**Why Blockchain-Based-Fund-Management-System-For-Indian-Temples**❓
+### 📌 **Why Blockchain-Based-Fund-Management-System-For-Indian-Temples**❓
 This project aims to revolutionize temple fund management by providing a decentralized, tamper-proof ecosystem. The core features include:
 
 - 🔗 **Blockchain Integration**: Ensures transparent, immutable records of donations and fund allocations
@@ -74,11 +75,18 @@ This project aims to revolutionize temple fund management by providing a decentr
 - 📄 **Report Generation**: Generate insightful reports to analyze donation flows and temple finances.
 - 📝 **Well Documented**: Clear, thorough documentation to help developers easily understand and contribute.
 
-## 💡 **What the Application Does**
+### 💡 **What the Application Does❓**
 
 Our application is a **Blockchain-Based Fund Management System for Indian Temples**. It allows devotees to donate securely in cryptocurrency (ETH) to registered temples, ensuring **full transparency, traceability, and trust**. Temple administrators can view donation histories, generate **weekly and monthly reports**, and securely manage fund withdrawals. The platform replaces manual bookkeeping and reduces fraud risks inherent in traditional temple donation systems.
 
-## ⚙️ **Why We Used the Technologies We Used**
+- **Project System Architecture**
+  ![system architecture](./assets/images/architecture.jpg)
+- **Project System Design**
+  ![Sysem Design](./assets/images/system-design.png)
+- **ER Diagram**
+  ![ER Diagram](./assets/images/er-diagram.jpg)
+
+### ⚙️ **Why We Used the Technologies We Used ❓**
 
 - **Blockchain (Ethereum Smart Contracts)**: Guarantees tamper-proof records, transparent transactions, and decentralized trust without intermediaries.
 - **Node.js + Express**: Fast, scalable backend ideal for handling APIs and blockchain integrations.
@@ -86,7 +94,7 @@ Our application is a **Blockchain-Based Fund Management System for Indian Temple
 - **Next.js + Tailwind CSS**: Provides a modern, performant, and responsive UI for smooth user experiences.
 - **JWT Authentication**: Delivers secure, token-based user sessions and authorization flows.
 
-## 🚧 Challenges Faced
+### 🚧 Challenges Faced
 
 - Integrating blockchain transactions with backend logic and database consistency was complex.
 - Handling volatile gas fees and transaction costs in the Ethereum network.
@@ -166,7 +174,7 @@ npm run dev
 ![Registered Temples](./assets/images/registerd-temple.png)
 
 ### Temple Admin Dashboard View 
-![temple admin dashboard](./assets/images/temple-admin-dashboard.png)
+![temple admin dashboard](./assets/images/templeadmin-dashboard.png)
 
 ### Temple Info View
 ![temple info view](./assets/images/temple-info.png)

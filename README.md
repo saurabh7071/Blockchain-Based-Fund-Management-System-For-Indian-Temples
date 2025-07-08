@@ -50,7 +50,9 @@
   - [Installation](#installation)
   - [Usage](#usage)
 - [Team](#team)
-- [Licence](#licence)
+- [My Contribution](#my-contribution)
+- [License](#license)
+- [Badges](#badges)
 
 </div>
 
@@ -142,8 +144,7 @@ Using **npm**:
 npm run dev
 ```
 
-## 👥 Team
-
+## Team
 This project was developed collaboratively by:
 
 - **Saurabh Vaidya** (Me)
@@ -151,10 +152,36 @@ This project was developed collaboratively by:
 - **Shreya Shirbhate**
 - **Rajnandan Rai**
 
-## 📄 License
+## My Contribution
 
+### 👤 **Saurabh Vaidya (Me)**
+
+- Led the development and coordination of the project.
+- Designed the database architecture and implemented all database operations.
+- Developed the complete backend, including API development and business logic.
+- Implemented authentication and authorization systems using JWT.
+- Integrated the backend seamlessly with the frontend (Next.js).
+- Contributed to the design and development of smart contracts alongside the blockchain team.
+- Managed project timelines, task allocation, and ensured successful delivery of project milestones.
+
+
+## License
 This project is licensed under the MIT License © 2025 Saurabh Vaidya.  
 See the [LICENSE](./LICENSE) file for details.
+
+## Badges
+[![Open in Visual Studio Code](https://img.shields.io/badge/Open%20in-VSCode-007ACC?style=flat-square&logo=visualstudiocode&logoColor=white)](https://open.vscode.dev/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples)
+![Forks](https://img.shields.io/github/forks/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples?style=flat-square)
+![Stars](https://img.shields.io/github/stars/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples?style=flat-square)
+![GitHub license](https://img.shields.io/github/license/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples?style=flat-square)
+![Issues](https://img.shields.io/github/issues/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples?style=flat-square)
+![Pull Requests](https://img.shields.io/github/issues-pr/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples?style=flat-square)
+![Repo Size](https://img.shields.io/github/repo-size/saurabh7071/Blockchain-Based-Fund-Management-System-For-Indian-Temples?style=flat-square)
+
+
+
+
+
 
 
 

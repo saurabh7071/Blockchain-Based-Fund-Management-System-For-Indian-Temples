@@ -84,7 +84,7 @@ Our application is a **Blockchain-Based Fund Management System for Indian Temple
 - **Project System Design**
   ![Sysem Design](./assets/images/system-design.png)
 - **ER Diagram**
-  ![ER Diagram](./assets/images/er-diagram.jpg)
+  ![ER Diagram](./assets/images/erdiagram.jpg)
 
 ### ⚙️ **Why We Used the Technologies We Used ❓**
 
